@@ -1,11 +1,6 @@
 
 def validar_rut(rut_texto: str) -> tuple[bool, str]:
-    """
-    Valida un RUT chileno usando el algoritmo oficial Módulo 11.
-    Retorna (exito: bool, log_pasos: str) para que la vista lo muestre.
-    """
     log = []
-
     rut = rut_texto.strip().replace(".", "").replace(" ", "").upper()
     log.append(f"RUT normalizado: {rut}")
 
@@ -41,7 +36,6 @@ def validar_rut(rut_texto: str) -> tuple[bool, str]:
     log.append(f"Suma total = {suma}")
     resto = suma % 11
     log.append(f"Resto: {suma} mod 11 = {resto}")
-
     calc = 11 - resto
     log.append(f"11 - {resto} = {calc}")
 
@@ -68,8 +62,7 @@ def validar_rut(rut_texto: str) -> tuple[bool, str]:
 
 def extraer_digitos(rut_texto: str) -> list[int]:
     rut = rut_texto.strip().replace(".", "").replace(" ", "").upper()
-    cuerpo = rut.split("-")[0]
-    return [int(c) for c in cuerpo]
+    return [int(c) for c in rut.split("-")[0]]
 
 
 def extraer_dv(rut_texto: str) -> str:
@@ -80,7 +73,6 @@ def extraer_dv(rut_texto: str) -> str:
 def calcular_variable_auxiliar(dv: str) -> tuple[int, str]:
     log = ["── Variable auxiliar v ──"]
     log.append(f"Dígito verificador DV = '{dv}'")
-
     if dv == "K":
         v = 10
         log.append("Regla: DV = K  →  v = 10")
@@ -90,7 +82,6 @@ def calcular_variable_auxiliar(dv: str) -> tuple[int, str]:
     else:
         v = int(dv)
         log.append(f"Regla: DV es dígito 1-9  →  v = {v}")
-
     log.append(f"v = {v}")
     return v, "\n".join(log)
 
@@ -180,39 +171,127 @@ def clasificar_conica(A: float, B: float) -> tuple[str, str]:
     eps = 1e-9
     az = abs(A) < eps
     bz = abs(B) < eps
-
     if az and bz:
         return "Degenerada", "A=0 y B=0. No representa una cónica estándar."
     if az or bz:
-        return "Parábola", (
-            f"Exactamente uno de los coeficientes es cero "
-            f"(A={_fmt(A)}, B={_fmt(B)})  →  Parábola."
-        )
+        return "Parábola", f"Exactamente uno es cero (A={_fmt(A)}, B={_fmt(B)})  →  Parábola."
     if abs(A - B) < eps:
-        return "Circunferencia", (
-            f"A = B = {_fmt(A)} y ambos ≠ 0  →  Circunferencia."
-        )
+        return "Circunferencia", f"A = B = {_fmt(A)} y ambos ≠ 0  →  Circunferencia."
     if (A > 0) == (B > 0):
-        return "Elipse", (
-            f"A={_fmt(A)} y B={_fmt(B)} tienen el mismo signo, A ≠ B  →  Elipse."
-        )
-    return "Hipérbola", (
-        f"A={_fmt(A)} y B={_fmt(B)} tienen signos opuestos  →  Hipérbola."
-    )
+        return "Elipse", f"A={_fmt(A)} y B={_fmt(B)} mismo signo, A ≠ B  →  Elipse."
+    return "Hipérbola", f"A={_fmt(A)} y B={_fmt(B)} signos opuestos  →  Hipérbola."
+
+
+# ── NUEVO 1: Selección de caso límite (Fase 6) ───────────────
+def determinar_caso_limite(d8: int) -> dict:
+    """
+    Determina el tipo de discontinuidad según d8 (Fase 6 del PDF).
+      d8 % 3 == 0  →  Caso 1: Discontinuidad Removible
+      d8 % 3 == 1  →  Caso 2: Discontinuidad de Salto
+      d8 % 3 == 2  →  Caso 3: Discontinuidad Infinita
+    Retorna dict con caso (int 1/2/3), nombre, explicacion.
+    """
+    residuo = d8 % 3
+    casos = {
+        0: ("Removible",  1,
+            f"d8 = {d8}  →  {d8} mod 3 = 0  →  Caso 1: Discontinuidad Removible.\n"
+            f"Se construye una función racional con factor común que se anula en x = a."),
+        1: ("De Salto",   2,
+            f"d8 = {d8}  →  {d8} mod 3 = 1  →  Caso 2: Discontinuidad de Salto.\n"
+            f"Se construyen dos tramos lineales con valores distintos al acercarse a x = a."),
+        2: ("Infinita",   3,
+            f"d8 = {d8}  →  {d8} mod 3 = 2  →  Caso 3: Discontinuidad Infinita.\n"
+            f"Se construye una función cuyo denominador se anula en x = a."),
+    }
+    nombre, caso_num, explicacion = casos[residuo]
+    return {
+        "caso": caso_num,
+        "nombre": nombre,
+        "explicacion": explicacion,
+        "d8": d8,
+        "residuo": residuo,
+    }
+
+
+# ── NUEVO 2: Expansión canónica → general (Fase 2, punto 10) ─
+def expansion_canonica_a_general(A: float, B: float,
+                                  h: float, k: float,
+                                  r_o_p: float = 0,
+                                  tipo: str = "") -> dict:
+    """
+    Dado el centro/vértice (h, k) y los coeficientes A, B,
+    expande la forma canónica de vuelta a Ax²+By²+Cx+Dy+E=0
+    mostrando cada paso algebraico.
+
+    Para circunferencia/elipse/hipérbola usa h y k.
+    r_o_p es ignorado (ya está implícito en A, B de la canónica).
+
+    Retorna dict con C, D, E calculados y log de pasos.
+    """
+    log = ["── Expansión: Forma Canónica  →  Ecuación General ──"]
+    log.append("")
+
+    # Canónica: A(x-h)² + B(y-k)² = constante
+    # Expandir (x-h)² = x² - 2hx + h²
+    # Expandir (y-k)² = y² - 2ky + k²
+    log.append(f"Partimos de la forma canónica con centro/vértice en (h, k) = ({_fmt(h)}, {_fmt(k)})")
+    log.append("")
+    log.append(f"Expandimos A·(x - h)²:")
+    log.append(f"  A·(x - {_fmt(h)})²  =  A·(x² - 2·{_fmt(h)}·x + {_fmt(h)}²)")
+    log.append(f"  =  A·x²  -  {_fmt(2*h)}A·x  +  {_fmt(h*h)}A")
+    log.append("")
+    log.append(f"Expandimos B·(y - k)²:")
+    log.append(f"  B·(y - {_fmt(k)})²  =  B·(y² - 2·{_fmt(k)}·y + {_fmt(k)}²)")
+    log.append(f"  =  B·y²  -  {_fmt(2*k)}B·y  +  {_fmt(k*k)}B")
+    log.append("")
+
+    # Coeficientes resultantes
+    C_exp = -2 * h * A
+    D_exp = -2 * k * B
+    E_exp = (h * h * A) + (k * k * B)
+
+    log.append("Reuniendo términos en la forma Ax² + By² + Cx + Dy + E = 0:")
+    log.append(f"  C = -2·h·A = -2·({_fmt(h)})·A = {_fmt(C_exp)} · A  →  depende del A final")
+    log.append(f"  D = -2·k·B = -2·({_fmt(k)})·B = {_fmt(D_exp)} · B  →  depende del B final")
+    log.append(f"  E = h²·A + k²·B = ({_fmt(h*h)})·A + ({_fmt(k*k)})·B")
+    log.append("")
+
+    # Con valores numéricos de A y B
+    C_val = -2 * h * A
+    D_val = -2 * k * B
+    E_val = (h * h * A) + (k * k * B)
+
+    log.append("Sustituyendo los valores numéricos de A y B:")
+    log.append(f"  C = {_fmt(C_val)}")
+    log.append(f"  D = {_fmt(D_val)}")
+    log.append(f"  E = {_fmt(E_val)}  (antes de mover la constante del lado derecho)")
+    log.append("")
+    log.append("Ecuación general reconstruida:")
+    ec = (f"({_fmt(A)})x²  +  ({_fmt(B)})y²  +  ({_fmt(C_val)})x  "
+          f"+  ({_fmt(D_val)})y  +  ({_fmt(E_val)})  =  0")
+    log.append(ec)
+
+    return {
+        "C": C_val, "D": D_val, "E": E_val,
+        "ecuacion_str": ec,
+        "log": "\n".join(log)
+    }
 
 
 # ── helpers privados ─────────────────────────────────────────
 def _fstr(n, d):
-    """Muestra fracción simplificada. Si el denominador divide exacto, muestra entero."""
     if d == 1 or n == 0:
         return str(int(n))
-    # FIX: si n es divisible exacto por d, mostrar entero en vez de fracción
     if n % d == 0:
         return str(int(n // d))
     return f"{int(n)}/{int(d)}"
 
 def _fmt(v):
-    return str(int(v)) if v == int(v) else f"{v:.4f}"
+    if v == int(v):
+        return str(int(v))
+    # Mostrar hasta 4 decimales sin ceros finales
+    s = f"{v:.4f}".rstrip("0").rstrip(".")
+    return s
 
 def _log(msg, lines):
     lines.append(msg)
