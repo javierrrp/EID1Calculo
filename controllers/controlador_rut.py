@@ -1,4 +1,3 @@
-
 from view.vista_rut import VistaRut
 from models.modelo_rut import (
     validar_rut,
@@ -32,7 +31,6 @@ class ControladorRut:
                 "── Construcción de la Ecuación General ──\nIngrese un RUT válido para continuar."
             )
             self.vista.mostrar_conica("—", "—", "—")
-            self.vista.mostrar_caso_limite(None)
             return
 
         # ── Paso 2: Variable v ───────────────────────────────────
@@ -50,8 +48,9 @@ class ControladorRut:
         self.vista.mostrar_conica(tipo, datos_ec["ecuacion_str"], explicacion)
 
         # ── Paso 5: Caso de límite (d8) ──────────────────────────
+        # Mantenemos el cálculo matemático intacto para guardarlo en el diccionario,
+        # así el controlador de Ricardo (límites) podrá consumirlo sin problemas.
         caso_limite = determinar_caso_limite(digitos[7])
-        self.vista.mostrar_caso_limite(caso_limite)
 
         # ── Guardar para los otros controladores ─────────────────
         self.datos_ecuacion = {

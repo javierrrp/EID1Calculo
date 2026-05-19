@@ -1,25 +1,41 @@
+def separar_rut(rut_texto: str) -> tuple[str, str]:
+    rut = rut_texto.strip().replace(".", "").replace(" ", "").upper()
+    if "-" not in rut:
+        raise ValueError("El RUT no contiene guión separador.")
+
+    cuerpo, dv = rut.split("-", 1)
+
+    if not cuerpo or not dv:
+        raise ValueError("El RUT debe tener cuerpo y dígito verificador.")
+
+    return cuerpo, dv
 
 def validar_rut(rut_texto: str) -> tuple[bool, str]:
     log = []
-    rut = rut_texto.strip().replace(".", "").replace(" ", "").upper()
-    log.append(f"RUT normalizado: {rut}")
+    rut_norm = rut_texto.strip().replace(".", "").replace(" ", "").upper()
+    log.append(f"RUT normalizado: {rut_norm}")
 
-    if "-" not in rut:
-        return False, _log("ERROR: El RUT no contiene guión separador.", log)
-
-    cuerpo, dv = rut.split("-", 1)
+    try:
+        cuerpo, dv = separar_rut(rut_texto)
+    except ValueError as e:
+        return False, _log(f"ERROR: {str(e)}", log)
 
     if not cuerpo.isdigit():
         return False, _log("ERROR: El cuerpo debe contener solo dígitos.", log)
 
-    if len(cuerpo) != 8:
-        return False, _log(f"ERROR: El cuerpo debe tener 8 dígitos (tiene {len(cuerpo)}).", log)
+    if len(cuerpo) < 7 or len(cuerpo) > 8:
+        return False, _log(f"ERROR: El cuerpo del RUT debe tener 7 u 8 dígitos (tiene {len(cuerpo)}).", log)
 
     validos_dv = [str(i) for i in range(10)] + ["K"]
     if dv not in validos_dv:
         return False, _log("ERROR: El dígito verificador debe ser 0-9 o K.", log)
 
-    digitos = [int(c) for c in cuerpo]
+    # Adaptación a 8 dígitos con ceros a la izquierda para el modelo matemático
+    cuerpo_8 = cuerpo.zfill(8)
+    log.append(f"Cuerpo original del RUT: {cuerpo} ({len(cuerpo)} dígitos)")
+    log.append(f"Para el modelo matemático se completa a 8 dígitos: {cuerpo_8}")
+
+    digitos = [int(c) for c in cuerpo_8]
     log.append(f"Dígitos: d1={digitos[0]} d2={digitos[1]} d3={digitos[2]} d4={digitos[3]} "
                f"d5={digitos[4]} d6={digitos[5]} d7={digitos[6]} d8={digitos[7]}")
 
@@ -61,13 +77,21 @@ def validar_rut(rut_texto: str) -> tuple[bool, str]:
 
 
 def extraer_digitos(rut_texto: str) -> list[int]:
-    rut = rut_texto.strip().replace(".", "").replace(" ", "").upper()
-    return [int(c) for c in rut.split("-")[0]]
+    cuerpo, _ = separar_rut(rut_texto)
+    if not cuerpo.isdigit():
+        raise ValueError("El cuerpo del RUT debe contener solo dígitos.")
+    if len(cuerpo) < 7 or len(cuerpo) > 8:
+        raise ValueError(f"El cuerpo del RUT debe tener 7 u 8 dígitos (tiene {len(cuerpo)}).")
+    cuerpo_8 = cuerpo.zfill(8)
+    return [int(c) for c in cuerpo_8]
 
 
 def extraer_dv(rut_texto: str) -> str:
-    rut = rut_texto.strip().replace(".", "").replace(" ", "").upper()
-    return rut.split("-")[1]
+    _, dv = separar_rut(rut_texto)
+    validos_dv = [str(i) for i in range(10)] + ["K"]
+    if dv not in validos_dv:
+        raise ValueError("El dígito verificador debe ser 0-9 o K.")
+    return dv
 
 
 def calcular_variable_auxiliar(dv: str) -> tuple[int, str]:
@@ -182,7 +206,6 @@ def clasificar_conica(A: float, B: float) -> tuple[str, str]:
     return "Hipérbola", f"A={_fmt(A)} y B={_fmt(B)} signos opuestos  →  Hipérbola."
 
 
-# ── NUEVO 1: Selección de caso límite (Fase 6) ───────────────
 def determinar_caso_limite(d8: int) -> dict:
     """
     Determina el tipo de discontinuidad según d8 (Fase 6 del PDF).
@@ -213,27 +236,18 @@ def determinar_caso_limite(d8: int) -> dict:
     }
 
 
-# ── NUEVO 2: Expansión canónica → general (Fase 2, punto 10) ─
 def expansion_canonica_a_general(A: float, B: float,
-                                  h: float, k: float,
-                                  r_o_p: float = 0,
-                                  tipo: str = "") -> dict:
+                                 h: float, k: float,
+                                 r_o_p: float = 0,
+                                 tipo: str = "") -> dict:
     """
     Dado el centro/vértice (h, k) y los coeficientes A, B,
     expande la forma canónica de vuelta a Ax²+By²+Cx+Dy+E=0
-    mostrando cada paso algebraico.
-
-    Para circunferencia/elipse/hipérbola usa h y k.
-    r_o_p es ignorado (ya está implícito en A, B de la canónica).
-
-    Retorna dict con C, D, E calculados y log de pasos.
+    mostrando cada paso algebraico de manera limpia.
     """
     log = ["── Expansión: Forma Canónica  →  Ecuación General ──"]
     log.append("")
 
-    # Canónica: A(x-h)² + B(y-k)² = constante
-    # Expandir (x-h)² = x² - 2hx + h²
-    # Expandir (y-k)² = y² - 2ky + k²
     log.append(f"Partimos de la forma canónica con centro/vértice en (h, k) = ({_fmt(h)}, {_fmt(k)})")
     log.append("")
     log.append(f"Expandimos A·(x - h)²:")
@@ -245,27 +259,17 @@ def expansion_canonica_a_general(A: float, B: float,
     log.append(f"  =  B·y²  -  {_fmt(2*k)}B·y  +  {_fmt(k*k)}B")
     log.append("")
 
-    # Coeficientes resultantes
-    C_exp = -2 * h * A
-    D_exp = -2 * k * B
-    E_exp = (h * h * A) + (k * k * B)
-
-    log.append("Reuniendo términos en la forma Ax² + By² + Cx + Dy + E = 0:")
-    log.append(f"  C = -2·h·A = -2·({_fmt(h)})·A = {_fmt(C_exp)} · A  →  depende del A final")
-    log.append(f"  D = -2·k·B = -2·({_fmt(k)})·B = {_fmt(D_exp)} · B  →  depende del B final")
-    log.append(f"  E = h²·A + k²·B = ({_fmt(h*h)})·A + ({_fmt(k*k)})·B")
-    log.append("")
-
-    # Con valores numéricos de A y B
+    # Coeficientes numéricos calculados directamente
     C_val = -2 * h * A
     D_val = -2 * k * B
     E_val = (h * h * A) + (k * k * B)
 
-    log.append("Sustituyendo los valores numéricos de A y B:")
-    log.append(f"  C = {_fmt(C_val)}")
-    log.append(f"  D = {_fmt(D_val)}")
-    log.append(f"  E = {_fmt(E_val)}  (antes de mover la constante del lado derecho)")
+    log.append("Reuniendo términos en la forma Ax² + By² + Cx + Dy + E = 0:")
+    log.append(f"  C = -2·h·A = -2·({_fmt(h)})·({_fmt(A)}) = {_fmt(C_val)}")
+    log.append(f"  D = -2·k·B = -2·({_fmt(k)})·({_fmt(B)}) = {_fmt(D_val)}")
+    log.append(f"  E = h²·A + k²·B = ({_fmt(h*h)})·({_fmt(A)}) + ({_fmt(k*k)})·({_fmt(B)}) = {_fmt(E_val)}")
     log.append("")
+
     log.append("Ecuación general reconstruida:")
     ec = (f"({_fmt(A)})x²  +  ({_fmt(B)})y²  +  ({_fmt(C_val)})x  "
           f"+  ({_fmt(D_val)})y  +  ({_fmt(E_val)})  =  0")
@@ -286,12 +290,16 @@ def _fstr(n, d):
         return str(int(n // d))
     return f"{int(n)}/{int(d)}"
 
+
 def _fmt(v):
-    if v == int(v):
-        return str(int(v))
-    # Mostrar hasta 4 decimales sin ceros finales
+    try:
+        if float(v).is_integer():
+            return str(int(v))
+    except (ValueError, TypeError):
+        return str(v)
     s = f"{v:.4f}".rstrip("0").rstrip(".")
     return s
+
 
 def _log(msg, lines):
     lines.append(msg)

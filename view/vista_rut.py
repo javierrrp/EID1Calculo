@@ -174,80 +174,6 @@ class VistaRut(QWidget):
         card_lay.addWidget(self.lbl_explicacion)
 
         lay.addWidget(card)
-
-        # ── Tarjeta caso límite (Fase 6) ───────────────────────
-        card_caso = QFrame()
-        card_caso.setStyleSheet(
-            "QFrame { background-color: white; border-radius: 20px; padding: 8px; }"
-        )
-        self._apply_shadow(card_caso)
-        caso_lay = QVBoxLayout(card_caso)
-        caso_lay.setContentsMargins(20, 14, 20, 14)
-        caso_lay.setSpacing(8)
-
-        lbl_titulo_caso = QLabel("MÓDULO DE LÍMITES — CASO SELECCIONADO")
-        lbl_titulo_caso.setStyleSheet(
-            "color: #94A3B8; font-weight: 800; font-size: 11px; letter-spacing: 1px;"
-        )
-        caso_lay.addWidget(lbl_titulo_caso)
-
-        self.lbl_caso_limite = QLabel("—")
-        self.lbl_caso_limite.setWordWrap(True)
-        self.lbl_caso_limite.setStyleSheet(
-            "font-family: Consolas; font-size: 12px; color: #065F46; "
-            "background: #ECFDF5; border-radius: 10px; padding: 10px; "
-            "border-left: 4px solid #4ECDC4;"
-        )
-        caso_lay.addWidget(self.lbl_caso_limite)
-        lay.addWidget(card_caso)
-
-        # ── Tarjeta elementos geométricos (Fase 4 del PDF) ─────
-        card_defensa = QFrame()
-        card_defensa.setStyleSheet(
-            "QFrame { background-color: white; border-radius: 20px; padding: 8px; }"
-        )
-        self._apply_shadow(card_defensa)
-        defensa_lay = QVBoxLayout(card_defensa)
-        defensa_lay.setContentsMargins(20, 14, 20, 16)
-        defensa_lay.setSpacing(8)
-
-        lbl_defensa = QLabel("ELEMENTOS DE LA CÓNICA (PARA COMPLETAR EN DEFENSA)")
-        lbl_defensa.setStyleSheet(
-            "color: #94A3B8; font-weight: 800; font-size: 11px; letter-spacing: 1px;"
-        )
-        defensa_lay.addWidget(lbl_defensa)
-
-        estilo_input = """
-            QLineEdit {
-                border: 2px solid #E2E8F0; border-radius: 10px;
-                font-size: 13px; color: #1E293B;
-                background: #F8FAFC; padding: 8px 12px;
-            }
-            QLineEdit:focus { border: 2px solid #4ECDC4; background: white; }
-        """
-
-        # Elementos exactos según Fase 4 del PDF
-        elementos = [
-            ("campo_centro",   "Centro (h, k)"),
-            ("campo_vertices", "Vértices"),
-            ("campo_focos",    "Focos"),
-            ("campo_eje_may",  "Eje Mayor / Transverso"),
-            ("campo_eje_men",  "Eje Menor / Conjugado"),
-            ("campo_direc",    "Directriz (si corresponde)"),
-        ]
-
-        for attr, label_text in elementos:
-            lbl = QLabel(label_text)
-            lbl.setStyleSheet("font-size: 11px; color: #64748B; font-weight: 600;")
-            defensa_lay.addWidget(lbl)
-            campo = QLineEdit()
-            campo.setPlaceholderText(f"Ingrese {label_text}...")
-            campo.setStyleSheet(estilo_input)
-            campo.setMinimumHeight(34)
-            defensa_lay.addWidget(campo)
-            setattr(self, attr, campo)
-
-        lay.addWidget(card_defensa)
         lay.addStretch()
 
         scroll = QScrollArea()
@@ -292,9 +218,6 @@ class VistaRut(QWidget):
         self.lbl_tipo_conica.setText(tipo)
         self.lbl_ecuacion.setText(ecuacion_str)
         self.lbl_explicacion.setText(explicacion)
-
-    def mostrar_caso_limite(self, caso: dict | None):
-        self.lbl_caso_limite.setText(caso["explicacion"] if caso else "—")
 
     # ─────────────────────────── helpers ───────────────────────
     def _emitir_validar(self):
