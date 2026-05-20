@@ -77,4 +77,30 @@ class ModeloConicas:
         return "\n".join(self.pasos_desarrollo)
     
 
+    def expandir_general(self, h, k, lado_derecho):
+        pasos = []
+        pasos.append(f"Ecuacion canónica: {self.a:.2f}(x - h)² + {self.b}(y - k)² = lado_derecho")
 
+        pasos.append("\n1. Desarrollamos los binomios al cuadrado:")
+        pasos.append(f"   (x - {h:.2f})² = x² - 2*h*x + h²")
+        pasos.append(f"   (y - {k:.2f})² = y² - 2*k*y + k²")
+        
+        c_calculado = -2 * self.a * h
+        d_calculado = -2 * self.b * k
+
+        termino_ind_x = self.a * h ** 2
+        termino_ind_y = self.b * k ** 2
+
+        pasos.append("\n2. Multiplicamos por los coeficientes externos A y B:")
+        pasos.append(f"   {self.a:.2f}(x² - 2*{h:.2f}*x + {h:.2f}²) = {self.a:.2f}x² + {c_calculado:.2f}x + {termino_ind_x:.2f}")
+        pasos.append(f"   {self.b}(y² - 2*{k:.2f}*y + {k:.2f}²) = {self.b}y² + {d_calculado:.2f}y + {termino_ind_y:.2f}")
+        
+
+        e_calculado = termino_ind_x + termino_ind_y - lado_derecho
+        pasos.append("\n3. Agrupamos terminos independientes trasladando el lado derecho:")
+        pasos.append(f"   E = {termino_ind_x:.2f} + {termino_ind_y:.2f} - {lado_derecho:.2f} = {e_calculado:.2f}")
+
+        ecuacion_general = f"{self.a:.2f}x² + {self.b}y² + {c_calculado:.2f}x + {d_calculado:.2f}y + {e_calculado:.2f} = 0"
+        pasos.append(f"\n4. Ecuación general: \n {ecuacion_general}")
+
+        return c_calculado, d_calculado, e_calculado, "\n".join(pasos)
