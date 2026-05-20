@@ -117,43 +117,84 @@ class PlanoCartesiano(QWidget):
         centro_x = (ancho // 2) + int(self.offset_x)
         centro_y = (alto // 2) + int(self.offset_y)
 
-        pen_cuadricula = QPen(QColor(220, 220, 220), 1)
+        if self.separacion >= 100:
+            paso_grilla = 0.5
+            paso_texto = 0.5
+        elif self.separacion >= 50:
+            paso_grilla = 1
+            paso_texto = 1
+        elif self.separacion >= 20:
+            paso_grilla = 1
+            paso_texto = 2
+        elif self.separacion >= 10:
+            paso_grilla = 1
+            paso_texto = 5
+        else:
+            paso_grilla = 5
+            paso_texto = 10
+
+        val_min_x = -centro_x / self.separacion
+        val_max_x = (ancho - centro_x) / self.separacion
+        val_min_y = (centro_y - alto) / self.separacion
+        val_max_y = centro_y / self.separacion
+
+        limite_min = int(min(val_min_x, val_min_y)) - 2
+        limite_max = int(max(val_max_x, val_max_y)) + 2
+
+        pen_cuadricula = QPen(QColor(230, 230, 230), 1)
         pen_texto = QPen(QColor(120, 120, 120))
-        painter.setPen(pen_cuadricula)
         fuente_numeros = self.font()
         fuente_numeros.setPointSize(8)
         painter.setFont(fuente_numeros)
 
-        rango = 100
+        for i in range(limite_min * 2, limite_max * 2):
+            val = i * 0.5
 
-        for i in range(-rango, rango + 1):
-            px = centro_x + (i * self.separacion)
-            py = centro_y - (i * self.separacion)
+            # Dibujar líneas solo si calza con el paso_grilla asignado
+            if (val * 10) % (paso_grilla * 10) != 0:
+                continue
 
+            px = centro_x + int(val * self.separacion)
+            py = centro_y - int(val * self.separacion)
+            
+            # Formatear el número (quita los ceros a la derecha)
+            texto_numero = f"{val:g}"
+
+            # Líneas verticales (Eje X)
             if 0 <= px <= ancho:
                 painter.setPen(pen_cuadricula)
                 painter.drawLine(px, 0, px, alto)
-                if i != 0 and i % 2 == 0:
+                if val != 0 and (val * 10) % (paso_texto * 10) == 0:
                     painter.setPen(pen_texto)
-                    painter.drawText(px - 6, centro_y + 15, str(i))
+                    painter.drawText(px - 6, centro_y + 15, texto_numero)
 
+            # Líneas horizontales (Eje Y)
             if 0 <= py <= alto:
                 painter.setPen(pen_cuadricula)
                 painter.drawLine(0, py, ancho, py)
-                if i != 0 and i % 2 == 0:
+                if val != 0 and (val * 10) % (paso_texto * 10) == 0:
                     painter.setPen(pen_texto)
-                    painter.drawText(centro_x + 5, py + 4, str(i))
+                    painter.drawText(centro_x + 5, py + 4, texto_numero)
 
+        # Ejes principales (El 0)
         pen_ejes = QPen(QColor(50, 50, 50), 2)
         painter.setPen(pen_ejes)
         painter.drawLine(0, centro_y, ancho, centro_y)
         painter.drawLine(centro_x, 0, centro_x, alto)
 
-        # Dibujar el centro si tenemos los datos proporcionados
+    
         if self.h is not None and self.k is not None:
             px = centro_x + (self.h * self.separacion)
             py = centro_y - (self.k * self.separacion)
 
+            if self.tipo_conica == "Circunferencia" and self.radio is not None:
+                radio_px = self.radio * self.separacion
+                pen_figura = QPen(QColor(41, 128, 185), 3)
+                painter.setPen(pen_figura)
+                painter.setBrush(QColor(52, 152, 219, 40))
+                painter.drawEllipse(int(px - radio_px), int(py - radio_px), int(radio_px * 2), int(radio_px * 2))
+
+        
             painter.setBrush(QColor("red"))
             painter.setPen(Qt.GlobalColor.transparent)
             painter.drawEllipse(int(px) - 4, int(py) - 4, 8, 8)

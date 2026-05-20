@@ -56,26 +56,48 @@ class ControladorConicas:
             return
         
         #leemos lo que el usuario ingreso en los campos
-        resp_centro = self.vista.input_centro.text().strip().replace(" ", "")
+        resp_centro = self.vista.input_centro.text().strip()
         resp_radio = self.vista.input_radio.text().strip()
 
         #leemos la verdad absoluta calculada por el modelo
-        real_centro = self.elementos_correctos["centro"].replace(" ", "")
+        real_centro = self.elementos_correctos["centro"]
         real_radio = self.elementos_correctos["radio"]
 
         mensaje = "--- PANEL --- \n\n"
 
-        if resp_centro == real_centro:
-            mensaje += "✅Centro: Correcto! \n"
+        def extraer_coordenadas(texto):
+
+            try:
+                texto_limpio = texto.replace("(", "").replace(")", "")
+                partes = texto_limpio.split(",")
+                if len(partes) == 2:
+                    return float(partes[0]), float(partes[1])
+            except:
+                pass
+            return None
+        
+        coords_resp = extraer_coordenadas(resp_centro)
+        coords_real = extraer_coordenadas(real_centro)
+
+        if coords_resp and coords_real:
+            if abs(coords_resp[0] - coords_real[0]) < 0.05 and abs(coords_resp[1] - coords_real[1]) < 0.05:
+                mensaje += "✅Centro: Correcto! \n"
+            else:
+                mensaje += f"Centro: Incorrecto. Respuesta correcta: {real_centro} \n"
         else:
             mensaje += f"Centro: Incorrecto. Respuesta correcta: {real_centro} \n"
-        
+       
         if self.elementos_correctos["tipo"] == "Circunferencia":
-            if resp_radio == real_radio:
-                mensaje += "Radio: Correcto! \n"
-            else:
+            try:
+                num_resp_radio = float(resp_radio)
+                num_real_radio = float(real_radio)
+                if abs(num_resp_radio - num_real_radio) < 0.05:
+                    mensaje += "✅Radio: Correcto! \n"
+                else:
+                    mensaje += f"Radio: Incorrecto. Respuesta correcta: {real_radio} \n"
+            except:
                 mensaje += f"Radio: Incorrecto. Respuesta correcta: {real_radio} \n"
-
+                
         msg_box = QMessageBox(self.vista)
         msg_box.setWindowTitle("Resultados")
         msg_box.setText(mensaje)
