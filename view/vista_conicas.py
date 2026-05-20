@@ -43,9 +43,9 @@ class VistaConicas(QWidget):
         layout_izquierdo.addWidget(self.input_focos)
         
         #boton para verificar
-        self.btn_verificar_defensa = QPushButton("Verificar Respuestas")
-        self.btn_verificar_defensa.setStyleSheet("background-color: #3B82F6; color: white; font-weight: bold; padding: 8px;")
-        layout_izquierdo.addWidget(self.btn_verificar_defensa)
+        self.btn_verificar = QPushButton("Verificar Respuestas")
+        self.btn_verificar.setStyleSheet("background-color: #3B82F6; color: white; font-weight: bold; padding: 8px;")
+        layout_izquierdo.addWidget(self.btn_verificar)
 
         layout_principal.addWidget(panel_izquierdo, stretch=1)
 
@@ -65,16 +65,19 @@ class PlanoCartesiano(QWidget):
         #inicializar variables para el centro de la conica
         self.h = None
         self.k = None
+        self.tipo_conica = None
+        self.radio = None
 
         self.offset_x = 0
         self.offset_y = 0
         self.last_mouse_pos = None
         self.separacion = 25
 
-    def actualizar_figura(self, h, k):
-
+    def actualizar_figura(self, h, k, tipo=None, radio=None):
         self.h = h
         self.k = k
+        self.tipo_conica = tipo
+        self.radio = radio
         self.update()
 
 
@@ -96,6 +99,14 @@ class PlanoCartesiano(QWidget):
         if event.button() == Qt.MouseButton.LeftButton:
             self.last_mouse_pos = None
             self.setCursor(Qt.CursorShape.ArrowCursor) # Cambia el cursor a flecha normal
+
+    def wheelEvent(self, event):
+        delta = event.angleDelta().y()
+        if delta > 0:
+            self.separacion += 5
+        else:
+            self.separacion = max(5, self.separacion - 5)
+        self.update()
 
     def paintEvent(self, event):
         painter = QPainter(self)
