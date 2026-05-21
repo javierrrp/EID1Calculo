@@ -2,11 +2,10 @@ import sys
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QLabel, QPushButton, QStackedWidget, QFrame, 
                              QGraphicsDropShadowEffect)
-from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve, QPoint
-from PyQt6.QtGui import QFont, QColor, QLinearGradient, QBrush
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QColor
 
 class AnimatedNavButton(QPushButton):
-    """Botón con diseño de 'burbuja' y cambio de color alegre"""
     def __init__(self, text, index, color_hex):
         super().__init__()
         self.index = index
@@ -48,6 +47,7 @@ class AnimatedNavButton(QPushButton):
         self.setGraphicsEffect(shadow)
 
 class VistaPrincipal(QMainWindow):
+    # Señal que mapea la comunicación con el controlador principal
     cambiar_vista_solicitada = pyqtSignal(int)
 
     def __init__(self):
@@ -55,7 +55,7 @@ class VistaPrincipal(QMainWindow):
         self.setWindowTitle("MAT1186 | Engine Matemático Creativo")
         self.setMinimumSize(1200, 900)
         
-        # Colores de la paleta
+        # Colores de la paleta alegre
         self.clr_rut = "#4ECDC4"   # Turquesa
         self.clr_con = "#FF6B6B"   # Coral
         self.clr_lim = "#FFD93D"   # Amarillo
@@ -105,7 +105,8 @@ class VistaPrincipal(QMainWindow):
         
         self.botones = [self.btn_rut, self.btn_conicas, self.btn_limites]
         for btn in self.botones:
-            btn.clicked.connect(lambda checked, b=btn: self.navegar(b.index))
+            # Vincula el clic del botón con el método de navegación
+            btn.clicked.connect(lambda checked, b=btn: self.cambiar_pestana(b.index))
             sidebar_layout.addWidget(btn)
 
         sidebar_layout.addStretch()
@@ -156,21 +157,40 @@ class VistaPrincipal(QMainWindow):
         self.content_area.addWidget(self.view_container)
         self.layout_master.addLayout(self.content_area)
 
-        self.navegar(0)
+        # Inicializar en la pestaña del RUT por defecto
+        self.cambiar_pestana(0)
 
-    def navegar(self, index):
+    def cambiar_pestana(self, index):
+        """
+        SOLUCIÓN AL CRASH: Método mediador requerido explícitamente por el controlador.
+        Gestiona el cambio de índices en el QStackedWidget y actualiza la UI.
+        """
+        # Validar rango para evitar fallos de índice si una vista no se ha inyectado aún
+        if index < 0 or index >= len(self.botones):
+            return
+
+        # Sincronizar estados visuales de los botones laterales
         for i, btn in enumerate(self.botones):
             btn.setChecked(i == index)
         
         titulos = ["Validación de Identidad", "Geometría de Cónicas", "Cálculo de Límites"]
         colores = [self.clr_rut, self.clr_con, self.clr_lim]
         
+        # Actualizar dinámicamente el estilo y texto de la cabecera superior
         self.lbl_seccion.setText(titulos[index].upper())
         self.lbl_seccion.setStyleSheet(f"color: {colores[index]}; font-size: 22px; font-weight: 800; margin-left: 20px;")
         
+        # Conmutar la pantalla activa en el Stacked Widget
         self.stacked_widget.setCurrentIndex(index)
+        
+        # Notificar al controlador principal en caso de que requiera refrescar datos del modelo
         self.cambiar_vista_solicitada.emit(index)
 
+    def navegar(self, index):
+        """Mantener compatibilidad por si otros submódulos llaman al antiguo nombre"""
+        self.cambiar_pestana(index)
+
     def agregar_vista(self, widget_vista):
+        """Inyecta los sub-widgets (RUT, Cónicas, Límites) enviados desde el Main/Controlador"""
         widget_vista.setStyleSheet("background: transparent;")
         self.stacked_widget.addWidget(widget_vista)
