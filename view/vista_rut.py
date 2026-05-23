@@ -18,7 +18,6 @@ class VistaRut(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(50, 40, 50, 40)
         layout.setSpacing(24)
-
         # ── Tarjeta de entrada ─────────────────────────────────
         card = QFrame()
         card.setStyleSheet(
@@ -47,6 +46,10 @@ class VistaRut(QWidget):
             QLineEdit:focus { border: 3px solid #4ECDC4; background-color: white; }
         """)
         self.input_rut.returnPressed.connect(self._emitir_validar)
+        
+        # AGREGAR ESTA LÍNEA AQUÍ:
+        self.input_rut.textChanged.connect(self._formatear_rut_en_vivo)
+        
         card_layout.addWidget(self.input_rut)
 
         self.btn_validar = QPushButton("VERIFICAR SISTEMA")
@@ -222,6 +225,40 @@ class VistaRut(QWidget):
     # ─────────────────────────── helpers ───────────────────────
     def _emitir_validar(self):
         self.boton_validar_clicado.emit(self.input_rut.text())
+
+    def _formatear_rut_en_vivo(self, text: str):
+        # Desconectar temporalmente para evitar un bucle infinito
+        self.input_rut.textChanged.disconnect(self._formatear_rut_en_vivo)
+
+        # 1. Limpiar el texto: dejar solo números y la letra 'K' (mayúscula)
+        limpio = "".join(c for c in text.upper() if c.isdigit() or c == 'K')
+        
+        # 2. Limitar a 9 caracteres máximo (8 de cuerpo + 1 verificador)
+        limpio = limpio[:9]
+
+        # 3. Aplicar formato: XX.XXX.XXX-X
+        resultado = ""
+        if len(limpio) > 1:
+            cuerpo = limpio[:-1]
+            dv = limpio[-1]
+            
+            # Poner puntos al cuerpo de derecha a izquierda
+            cuerpo_formateado = ""
+            for i, digito in enumerate(reversed(cuerpo)):
+                if i > 0 and i % 3 == 0:
+                    cuerpo_formateado = "." + cuerpo_formateado
+                cuerpo_formateado = digito + cuerpo_formateado
+                
+            resultado = f"{cuerpo_formateado}-{dv}"
+        else:
+            resultado = limpio
+
+        # 4. Asignar el texto formateado y devolver el cursor al final
+        self.input_rut.setText(resultado)
+        self.input_rut.setCursorPosition(len(resultado))
+
+        # Volver a conectar la señal
+        self.input_rut.textChanged.connect(self._formatear_rut_en_vivo)
 
     def _mostrar_tab(self, key: str):
         for k, widget in self._tabs_content.items():
