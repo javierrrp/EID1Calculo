@@ -16,8 +16,9 @@ class ControladorConicas:
         
         datos = self.controlador_rut.datos_ecuacion
 
-        if datos is None:
-            self.vista.lbl_titulo.setText("Ingrese un RUT válido en la pestaña RUT para analizar la cónica.")
+        llaves_requeridas = ["A", "B", "C", "D", "E"    ]
+        if datos is None or not all(k in datos for k in llaves_requeridas):
+            self.vista.lbl_titulo.setText("Error: Faltan datos matemáticos para procesar la cónica.")            
             self.vista.txt_procedimiento.clear()
             self.vista.txt_procedimiento_inverso.clear()
             return
@@ -52,9 +53,33 @@ class ControladorConicas:
     
     def verificar(self):
         if not self.elementos_correctos:
-            QMessageBox.warning(self.vista, "Aviso", "Primero evalúa un RUT para tener un caso activo.")
+            msg = QMessageBox(self.vista)
+            msg.setWindowTitle("Aviso")
+            msg.setText("Primero evalua un rut para tener un caso activo")
+            msg.setIcon(QMessageBox.Icon.Warning)
+
+            msg.setStyleSheet("""
+                                QMessageBox {
+                                    background-color: white;
+                                }
+                                QLabel {
+                                    color: #000000;
+                                    font-size: 14px;
+                                    font-weight: bold;
+                                }
+
+                                QPushButton {
+                                    background-color: #3B82F6;
+                                    color: white;
+                                    padding: 6px 15px;
+                                    border-radius: 5px;
+                                    min-width: 80px;
+                                }
+                            """)
+            
+            msg.exec()
             return
-        
+    
         #leemos lo que el usuario ingreso en los campos
         resp_centro = self.vista.input_centro.text().strip()
         resp_radio = self.vista.input_radio.text().strip()
@@ -72,7 +97,7 @@ class ControladorConicas:
                 partes = texto_limpio.split(",")
                 if len(partes) == 2:
                     return float(partes[0]), float(partes[1])
-            except:
+            except ValueError:
                 pass
             return None
         
@@ -88,15 +113,18 @@ class ControladorConicas:
             mensaje += f"Centro: Incorrecto. Respuesta correcta: {real_centro} \n"
        
         if self.elementos_correctos["tipo"] == "Circunferencia":
-            try:
-                num_resp_radio = float(resp_radio)
-                num_real_radio = float(real_radio)
-                if abs(num_resp_radio - num_real_radio) < 0.05:
-                    mensaje += "✅Radio: Correcto! \n"
-                else:
+            if not resp_radio:
+                mensaje += "⚠️ Radio: El campo está vacío.\n"
+            else:
+                try:
+                    num_resp_radio = float(resp_radio)
+                    num_real_radio = float(real_radio)
+                    if abs(num_resp_radio - num_real_radio) < 0.05:
+                        mensaje += "✅Radio: Correcto! \n"
+                    else:
+                        mensaje += f"Radio: Incorrecto. Respuesta correcta: {real_radio} \n"
+                except ValueError:
                     mensaje += f"Radio: Incorrecto. Respuesta correcta: {real_radio} \n"
-            except:
-                mensaje += f"Radio: Incorrecto. Respuesta correcta: {real_radio} \n"
                 
         msg_box = QMessageBox(self.vista)
         msg_box.setWindowTitle("Resultados")

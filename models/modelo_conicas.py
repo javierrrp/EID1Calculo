@@ -47,6 +47,7 @@ class ModeloConicas:
             self.pasos_desarrollo.append(f"3. Completamos cuadrado de Y: sumamos {self.b * termino_suma_y} al lado derecho.")
         self.pasos_desarrollo.append(f"Ecuación canónica: {self.a:.2f}(x - {h:.2f})² + {self.b}(y - {k})² = {lado_derecho:.2f}")
 
+    
         return h, k, lado_derecho
     def obtener_elementos_geometricos(self):
 
@@ -54,12 +55,17 @@ class ModeloConicas:
         h, k, lado_der = self.completar_cuadrados()
 
         if tipo == "Circunferencia":
-            radio = lado_der ** 0.5 if lado_der > 0 else 0
+            if lado_der > 0:
+                radio = f"{(lado_der ** 0.5):.2f}"
+            elif lado_der == 0:
+                radio = "0 (Es un punto)"
+            else:
+                radio = "Imaginario (No existe locus real)"
 
             return {
                 "tipo": tipo,
                 "centro": f"({h:.2f}, {k:.2f})",
-                "radio": f"{radio:.2f}",
+                "radio": radio,
                 "focos": "no aplica",
                 "vertices": "no aplica"
             }

@@ -117,6 +117,9 @@ class PlanoCartesiano(QWidget):
         centro_x = (ancho // 2) + int(self.offset_x)
         centro_y = (alto // 2) + int(self.offset_y)
 
+        if ancho <= 0 or alto <= 0 or self.separacion <= 0:
+            return
+
         if self.separacion >= 100:
             paso_grilla = 0.5
             paso_texto = 0.5
