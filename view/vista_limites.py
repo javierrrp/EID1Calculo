@@ -1,23 +1,50 @@
-# view/vista_limites.py
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+import sys
+from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QGridLayout,
                              QFrame, QTableWidget, QTableWidgetItem, QHeaderView,
-                             QGraphicsDropShadowEffect, QLineEdit, QComboBox, QScrollArea)
-from PyQt6.QtCore import Qt, QPointF
-from PyQt6.QtGui import QColor, QPainter, QPen, QBrush, QWheelEvent, QFont
+                             QLineEdit, QComboBox, QScrollArea, QTextEdit, QPushButton, QListView)
+from PyQt6.QtCore import Qt, QPointF, QPoint
+from PyQt6.QtGui import QColor, QPainter, QPen, QBrush, QWheelEvent, QMouseEvent, QFont
 
 class LienzoLimites(QWidget):
-    """Lienzo matemático manual mediante QPainter con soporte de Zoom interactivo y números en los ejes"""
+    """Lienzo matemático manual mediante QPainter con soporte de Zoom y Arrastre Interactivo (Pan & Zoom)"""
     def __init__(self):
         super().__init__()
-        self.setMinimumSize(550, 500)
-        self.setStyleSheet("background-color: #FFFFFF; border-radius: 20px; border: 2px solid #E2E8F0;")
+        self.setMinimumSize(400, 510) 
+        self.setStyleSheet("background-color: #FFFFFF; border-radius: 12px; border: 1px solid #E2E8F0;")
         self.modelo_vinculado = None
-        self.escala_base = 28  
+        self.escala_base = 34  
         self.factor_zoom = 1.0  
+        
+        self.desfase_x = 0
+        self.desfase_y = 0
+        self.en_arrastre = False
+        self.ultima_posicion_mouse = QPoint()
 
     def vincular_modelo(self, modelo):
         self.modelo_vinculado = modelo
+        self.desfase_x = 0
+        self.desfase_y = 0
         self.update()
+
+    def mousePressEvent(self, event: QMouseEvent):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.en_arrastre = True
+            self.ultima_posicion_mouse = event.position().toPoint()
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+
+    def mouseMoveEvent(self, event: QMouseEvent):
+        if self.en_arrastre:
+            posicion_actual = event.position().toPoint()
+            delta = posicion_actual - self.ultima_posicion_mouse
+            self.desfase_x += delta.x()
+            self.desfase_y += delta.y()
+            self.ultima_posicion_mouse = posicion_actual
+            self.update()
+
+    def mouseReleaseEvent(self, event: QMouseEvent):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.en_arrastre = False
+            self.setCursor(Qt.CursorShape.ArrowCursor)
 
     def wheelEvent(self, event: QWheelEvent):
         delta = event.angleDelta().y()
@@ -33,76 +60,65 @@ class LienzoLimites(QWidget):
         
         ancho = self.width()
         alto = self.height()
-        centro_x = ancho // 2
-        centro_y = alto // 2
+        centro_x = (ancho // 2) + self.desfase_x
+        centro_y = (alto // 2) + self.desfase_y
         
         escala = int(self.escala_base * self.factor_zoom)
-        if escala < 5: 
-            escala = 5
+        if escala < 5: escala = 5
 
-        # Configurar fuente estilizada para los números de los ejes
-        fuente_ejes = QFont("Segoe UI", 8)
+        fuente_ejes = QFont("Segoe UI", 9)
         painter.setFont(fuente_ejes)
 
-        # 1. Cuadrícula de Fondo de Ingeniería e Inicialización de Números
         pen_grilla = QPen(QColor("#F1F5F9"), 1, Qt.PenStyle.SolidLine)
-        pen_texto = QPen(QColor("#94A3B8")) # Color gris elegante para los números
-        
+        pen_texto = QPen(QColor("#94A3B8")) 
         painter.setPen(pen_grilla)
-        limite_grilla = max(ancho, alto)
         
-        # Saltos dinámicos en los números según el nivel de zoom (para que no se amontonen)
-        paso_unidades = 1
-        if escala < 12:
-            paso_unidades = 5
-        elif escala < 20:
-            paso_unidades = 2
+        inicio_x = (centro_x % escala) - escala
+        for px in range(inicio_x, ancho + escala, escala):
+            painter.drawLine(px, 0, px, alto)
+            
+        inicio_y = (centro_y % escala) - escala
+        for py in range(inicio_y, alto + escala, escala):
+            painter.drawLine(0, py, ancho, py)
 
-        # Dibujar líneas horizontales y verticales de la cuadrícula
-        for i in range(-limite_grilla, limite_grilla, escala):
-            if i != 0:
-                painter.setPen(pen_grilla)
-                painter.drawLine(centro_x + i, 0, centro_x + i, alto)
-                painter.drawLine(0, centro_y + i, ancho, centro_y + i)
-
-        # 2. Ejes Cartesianos Principales
-        pen_ejes = QPen(QColor("#CBD5E1"), 2, Qt.PenStyle.SolidLine)
+        pen_ejes = QPen(QColor("#0F172A"), 1.5, Qt.PenStyle.SolidLine)
         painter.setPen(pen_ejes)
-        painter.drawLine(0, centro_y, ancho, centro_y)
-        painter.drawLine(centro_x, 0, centro_x, alto)
+        if 0 <= centro_y <= alto:
+            painter.drawLine(0, centro_y, ancho, centro_y)
+        if 0 <= centro_x <= ancho:
+            painter.drawLine(centro_x, 0, centro_x, alto)
 
-        # 3. Renderizar los números en el eje X y eje Y de manera adaptativa
         painter.setPen(pen_texto)
-        
-        # Números Eje X
-        max_unidades_x = centro_x // escala + 1
-        for u in range(-max_unidades_x, max_unidades_x + 1):
-            if u == 0:
-                continue
+        paso_unidades = 1
+        if escala < 12: paso_unidades = 5
+        elif escala < 20: paso_unidades = 2
+
+        unidades_izq = (centro_x // escala) + 2
+        unidades_der = ((ancho - centro_x) // escala) + 2
+        for u in range(-unidades_izq, unidades_der):
+            if u == 0: continue
             if u % paso_unidades == 0:
                 pos_x = centro_x + (u * escala)
-                # Pequeña marca visual (tick) en el eje
-                painter.drawLine(pos_x, centro_y - 3, pos_x, centro_y + 3)
-                # Dibujar el texto numérico centrado debajo del eje
-                painter.drawText(pos_x - 12, centro_y + 16, f"{u}")
+                if 0 <= pos_x <= ancho:
+                    y_num = max(16, min(alto - 6, centro_y + 16))
+                    painter.drawLine(pos_x, centro_y - 3, pos_x, centro_y + 3)
+                    painter.drawText(pos_x - 12, y_num, f"{u}")
 
-        # Números Eje Y
-        max_unidades_y = centro_y // escala + 1
-        for u in range(-max_unidades_y, max_unidades_y + 1):
-            if u == 0:
-                continue
+        unidades_abajo = ((alto - centro_y) // escala) + 2
+        unidades_arriba = (centro_y // escala) + 2
+        for u in range(-unidades_abajo, unidades_arriba):
+            if u == 0: continue
             if u % paso_unidades == 0:
                 pos_y = centro_y - (u * escala)
-                # Pequeña marca visual (tick) en el eje
-                painter.drawLine(centro_x - 3, pos_y, centro_x + 3, pos_y)
-                # Dibujar el texto numérico a la izquierda del eje
-                painter.drawText(centro_x - 22, pos_y + 4, f"{u}")
+                if 0 <= pos_y <= alto:
+                    x_num = max(4, min(ancho - 24, centro_x - 22))
+                    painter.drawLine(centro_x - 3, pos_y, centro_x + 3, pos_y)
+                    painter.drawText(x_num, pos_y + 4, f"{u}")
                 
         if not self.modelo_vinculado or not self.modelo_vinculado.dígitos:
             return
 
-        # 4. Trazado de la Función Matemática (Sky Blue Premium)
-        pen_funcion = QPen(QColor("#0EA5E9"), 3, Qt.PenStyle.SolidLine)
+        pen_funcion = QPen(QColor("#0284C7"), 3, Qt.PenStyle.SolidLine)
         painter.setPen(pen_funcion)
         ultimo_punto_valido = None
         margen_renderizado = alto * 2
@@ -129,19 +145,19 @@ class LienzoLimites(QWidget):
             else:
                 ultimo_punto_valido = None
 
-        # 5. Línea de Punto Crítico y Nodos Estilizados (Rose/Red Soft)
         pix_a = centro_x + int(self.modelo_vinculado.a * escala)
         if 0 <= pix_a <= ancho:
-            pen_asintota = QPen(QColor("#FDA4AF"), 1, Qt.PenStyle.DashLine)
+            pen_asintota = QPen(QColor("#FDA4AF"), 1.2, Qt.PenStyle.DashLine)
             painter.setPen(pen_asintota)
             painter.drawLine(pix_a, 0, pix_a, alto)
             
-            painter.setPen(QPen(QColor("#F43F5E"), 2))
+            painter.setPen(QPen(QColor("#EF4444"), 2.5))
             if self.modelo_vinculado.caso == 1:
                 lim_teorico = self.modelo_vinculado.a + self.modelo_vinculado.dígitos[0]
                 py_a = centro_y - int(lim_teorico * escala)
-                painter.setBrush(QBrush(QColor("#FFFFFF")))
-                painter.drawEllipse(pix_a - 5, py_a - 5, 10, 10)
+                if 0 <= py_a <= alto:
+                    painter.setBrush(QBrush(QColor("#FFFFFF")))
+                    painter.drawEllipse(pix_a - 4, py_a - 4, 8, 8)
                 
             elif self.modelo_vinculado.caso == 2:
                 d2 = self.modelo_vinculado.dígitos[1]
@@ -151,10 +167,10 @@ class LienzoLimites(QWidget):
                 
                 if 0 <= py_izq <= alto:
                     painter.setBrush(QBrush(QColor("#FFFFFF")))
-                    painter.drawEllipse(pix_a - 5, py_izq - 5, 10, 10)
+                    painter.drawEllipse(pix_a - 4, py_izq - 4, 8, 8)
                 if 0 <= py_der <= alto:
-                    painter.setBrush(QBrush(QColor("#F43F5E")))
-                    painter.drawEllipse(pix_a - 5, py_der - 5, 10, 10)
+                    painter.setBrush(QBrush(QColor("#EF4444")))
+                    painter.drawEllipse(pix_a - 4, py_der - 4, 8, 8)
 
 
 class VistaLimites(QWidget):
@@ -165,251 +181,446 @@ class VistaLimites(QWidget):
 
     def init_ui(self):
         layout_principal = QHBoxLayout(self)
-        layout_principal.setContentsMargins(24, 24, 24, 24)
-        layout_principal.setSpacing(30)
+        layout_principal.setContentsMargins(24, 16, 24, 24)
+        layout_principal.setSpacing(24)
 
-        # ================= COLUMNA IZQUIERDA: ÁREA CON SCROLL ADAPTATIVO =================
+        # ================= COLUMNA IZQUIERDA: PLANTEAMIENTO PEDAGÓGICO =================
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
-        scroll_area.setStyleSheet("QScrollArea { border: none; background: transparent; }")
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area.setStyleSheet("""
+            QScrollArea { border: none; background: transparent; }
+            QScrollBar:vertical { border: none; background: #F1F5F9; width: 8px; border-radius: 4px; }
+            QScrollBar::handle:vertical { background: #CBD5E1; min-height: 30px; border-radius: 4px; }
+        """)
         
         contenedor_izquierdo = QWidget()
-        contenedor_izquierdo.setStyleSheet("background: transparent;")
+        contenedor_izquierdo.setObjectName("ContenedorIzquierdo")
+        contenedor_izquierdo.setStyleSheet("#ContenedorIzquierdo { background-color: transparent; }")
+        
         panel_izquierdo = QVBoxLayout(contenedor_izquierdo)
-        panel_izquierdo.setContentsMargins(0, 0, 12, 0)
-        panel_izquierdo.setSpacing(20)
+        panel_izquierdo.setContentsMargins(0, 0, 8, 0)
+        panel_izquierdo.setSpacing(18)
 
-        # Tarjeta 1: Expresión Algebraica Dinámica
-        card_funcion = QFrame()
-        card_funcion.setStyleSheet("background-color: #FFFFFF; border-radius: 16px; border: 1px solid #E2E8F0;")
-        self.aplicar_sombra(card_funcion)
-        
-        layout_func = QVBoxLayout(card_funcion)
-        layout_func.setContentsMargins(20, 20, 20, 20)
-        layout_func.setSpacing(12)
-        
-        self.lbl_caso_titulo = QLabel("MÓDULO DE LÍMITES: ESPERANDO RUT")
-        self.lbl_caso_titulo.setStyleSheet("color: #0F172A; font-weight: 800; font-size: 14px; letter-spacing: 0.5px;")
-        
-        self.lbl_expresion = QLabel("Ingrese un RUT válido en la pestaña inicial para cargar el modelo matemático por tramos.")
-        self.lbl_expresion.setMinimumHeight(75)
-        self.lbl_expresion.setStyleSheet("""
-            QLabel {
-                color: #334155; 
-                font-size: 13px; 
-                font-family: 'Consolas', monospace; 
-                background-color: #F8FAFC; 
-                padding: 16px; 
-                border-radius: 10px; 
-                border: 1px solid #F1F5F9;
-            }
-        """)
-        self.lbl_expresion.setWordWrap(True)
-        
-        layout_func.addWidget(self.lbl_caso_titulo)
-        layout_func.addWidget(self.lbl_expresion)
-        panel_izquierdo.addWidget(card_funcion)
+        self.lbl_caso_titulo = QLabel("ANÁLISIS MATEMÁTICO DE TRABAJO")
+        self.lbl_caso_titulo.setStyleSheet("color: #1E293B; font-weight: 800; font-size: 13px; letter-spacing: 0.5px;")
+        panel_izquierdo.addWidget(self.lbl_caso_titulo)
 
-        # Tarjeta 2: Tabla de Evidencia Computacional
+        lbl_titulo_origen = QLabel("Origen Algorítmico (Derivación por RUT):")
+        lbl_titulo_origen.setStyleSheet("font-weight: 700; color: #334155; font-size: 12px;")
+        panel_izquierdo.addWidget(lbl_titulo_origen)
+        
+        self.txt_origen_rut = QTextEdit()
+        self.txt_origen_rut.setReadOnly(True)
+        self.txt_origen_rut.setMinimumHeight(120)
+        self.estilar_consola(self.txt_origen_rut)
+        panel_izquierdo.addWidget(self.txt_origen_rut)
+
+        lbl_titulo_marco = QLabel("Marco de Apoyo Analítico y Reglas del Caso:")
+        lbl_titulo_marco.setStyleSheet("font-weight: 700; color: #334155; font-size: 12px;")
+        panel_izquierdo.addWidget(lbl_titulo_marco)
+        
+        self.txt_marco_teorico = QTextEdit()
+        self.txt_marco_teorico.setReadOnly(True)
+        self.txt_marco_teorico.setMinimumHeight(180)
+        self.estilar_consola(self.txt_marco_teorico)
+        panel_izquierdo.addWidget(self.txt_marco_teorico)
+
         card_tabla = QFrame()
-        card_tabla.setStyleSheet("background-color: #FFFFFF; border-radius: 16px; border: 1px solid #E2E8F0;")
-        self.aplicar_sombra(card_tabla)
+        card_tabla.setStyleSheet("background-color: #1E293B; border-radius: 12px; border: 1px solid #334155;")
         
         layout_tab = QVBoxLayout(card_tabla)
-        layout_tab.setContentsMargins(20, 20, 20, 20)
-        layout_tab.setSpacing(12)
+        layout_tab.setContentsMargins(16, 16, 16, 16)
         
-        lbl_t_titulo = QLabel("EVIDENCIA COMPUTACIONAL LATERAL")
-        lbl_t_titulo.setStyleSheet("color: #64748B; font-weight: 700; font-size: 11px; letter-spacing: 0.5px;")
+        lbl_t_titulo = QLabel("EVIDENCIA COMPUTACIONAL LATERAL (ENTORNO DE x → a)")
+        lbl_t_titulo.setStyleSheet("color: #94A3B8; font-weight: 700; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 6px;")
         
         self.tabla_limites = QTableWidget(4, 4)
         self.tabla_limites.setHorizontalHeaderLabels(["x → a⁻", "f(x) Izq", "x → a⁺", "f(x) Der"])
         self.tabla_limites.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.tabla_limites.setStyleSheet("""
             QTableWidget { 
-                background-color: #FFFFFF; 
-                border-radius: 8px; 
-                border: 1px solid #E2E8F0;
-                font-size: 12px; 
-                color: #334155;
+                background-color: #1E293B; border: 1px solid #334155; border-radius: 6px; 
+                font-family: 'Consolas', 'Courier New', monospace; font-size: 11px; color: #93C5FD;
+                gridline-color: #334155;
             }
             QHeaderView::section {
-                background-color: #F8FAFC;
-                padding: 8px;
-                font-weight: 700;
-                border-bottom: 1px solid #E2E8F0;
-                border-right: none;
-                color: #475569;
+                background-color: #0F172A; padding: 6px; font-weight: 700; font-size: 11px;
+                border: 1px solid #334155; color: #38BDF8;
             }
         """)
         self.tabla_limites.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.tabla_limites.setFixedHeight(150)
+        self.tabla_limites.setFixedHeight(165) 
         
         layout_tab.addWidget(lbl_t_titulo)
         layout_tab.addWidget(self.tabla_limites)
         panel_izquierdo.addWidget(card_tabla)
 
-        # Tarjeta 3: Zona Interactiva (Defensa de Evaluación Oral)
-        card_defensa = QFrame()
-        card_defensa.setStyleSheet("background-color: #FFFFFF; border-radius: 16px; border: 1px solid #E2E8F0;")
-        self.aplicar_sombra(card_defensa)
-        
-        layout_defensa = QVBoxLayout(card_defensa)
-        layout_defensa.setContentsMargins(20, 20, 20, 20)
-        layout_defensa.setSpacing(14)
-        
-        lbl_defensa_titulo = QLabel("ZONA DE DEFENSA EVALUATIVA")
-        lbl_defensa_titulo.setStyleSheet("color: #0F172A; font-weight: 800; font-size: 11px; letter-spacing: 0.5px;")
-        layout_defensa.addWidget(lbl_defensa_titulo)
-
-        # Input de Límite L
-        layout_limite = QHBoxLayout()
-        lbl_res_limite = QLabel("Valor Límite (L):")
-        lbl_res_limite.setStyleSheet("font-size: 13px; color: #475569; font-weight: 600;")
-        self.input_limite_defensa = QLineEdit()
-        self.input_limite_defensa.setPlaceholderText("Ej: 8  o  No existe")
-        self.input_limite_defensa.setStyleSheet("""
-            QLineEdit {
-                background-color: #F8FAFC; border: 1px solid #E2E8F0; 
-                padding: 8px 12px; border-radius: 8px; font-size: 13px; color: #1E293B;
-            }
-            QLineEdit:focus { border: 1px solid #0EA5E9; background-color: #FFFFFF; }
-        """)
-        layout_limite.addWidget(lbl_res_limite)
-        layout_limite.addWidget(self.input_limite_defensa)
-        layout_defensa.addLayout(layout_limite)
-
-        # ComboBox de Continuidad Analítica
-        layout_concl = QHBoxLayout()
-        lbl_res_concl = QLabel("Clasificación:")
-        lbl_res_concl.setStyleSheet("font-size: 13px; color: #475569; font-weight: 600;")
-        self.combo_continuidad = QComboBox()
-        self.combo_continuidad.addItems([
-            "[ Seleccione su conclusión ]", 
-            "La función es Continua en x = a", 
-            "Discontinuidad Evitable / Removible (REI)", 
-            "Discontinuidad Esencial de Salto Finito", 
-            "Discontinuidad Asintótica / Infinita"
-        ])
-        self.combo_continuidad.setStyleSheet("""
-            QComboBox {
-                background-color: #F8FAFC; border: 1px solid #E2E8F0; 
-                padding: 8px 12px; border-radius: 8px; font-size: 13px; color: #1E293B;
-            }
-            QComboBox::drop-down { border: none; }
-            QComboBox:focus { border: 1px solid #0EA5E9; background-color: #FFFFFF; }
-        """)
-        layout_concl.addWidget(lbl_res_concl)
-        layout_concl.addWidget(self.combo_continuidad)
-        layout_defensa.addLayout(layout_concl)
-
-        # Barra de Feedback Premium de Autovalidación
-        self.lbl_validacion = QLabel("Esperando respuestas...")
-        self.lbl_validacion.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_validacion.setStyleSheet("""
-            background-color: #F1F5F9; color: #475569; 
-            font-weight: 700; font-size: 13px; 
-            padding: 12px; border-radius: 10px; margin-top: 5px;
-        """)
-        layout_defensa.addWidget(self.lbl_validacion)
-
-        self.input_limite_defensa.textChanged.connect(self.ejecutar_autovalidacion)
-        self.combo_continuidad.currentIndexChanged.connect(self.ejecutar_autovalidacion)
-
-        panel_izquierdo.addWidget(card_defensa)
         scroll_area.setWidget(contenedor_izquierdo)
         
-        # ================= COLUMNA DERECHA: VISUALIZACIÓN GRÁFICA INTERACTIVA =================
+        # ================= COLUMNA DERECHA: SECCIÓN GRÁFICA Y EVALUACIÓN =================
         panel_grafico = QVBoxLayout()
+        panel_grafico.setContentsMargins(0, 0, 0, 0)
         panel_grafico.setSpacing(12)
+        panel_grafico.setAlignment(Qt.AlignmentFlag.AlignTop) 
         
-        lbl_g_titulo = QLabel("REPRESENTACIÓN GRÁFICA INTERACTIVA (ZOOM CON RUEDA DEL MOUSE)")
-        lbl_g_titulo.setStyleSheet("color: #475569; font-weight: 700; font-size: 11px; letter-spacing: 0.5px;")
+        lbl_g_titulo = QLabel("📌 Analiza los datos de soporte e ingresa tus deducciones analíticas abajo:")
+        lbl_g_titulo.setStyleSheet("color: #94A3B8; font-style: italic; font-size: 11px; padding-bottom: 2px;")
+        panel_grafico.addWidget(lbl_g_titulo)
         
         self.lienzo_grafico = LienzoLimites()
-        self.aplicar_sombra(self.lienzo_grafico)
-        
-        panel_grafico.addWidget(lbl_g_titulo)
         panel_grafico.addWidget(self.lienzo_grafico)
 
-        layout_principal.addWidget(scroll_area, 4)
-        layout_principal.addLayout(panel_grafico, 6)
+        self.card_defensa = QFrame()
+        self.card_defensa.setObjectName("CardDefensa")
+        self.card_defensa.setStyleSheet("#CardDefensa { background-color: #FFFFFF; border-radius: 12px; border: 1px solid #E2E8F0; }")
+        
+        layout_defensa = QVBoxLayout(self.card_defensa)
+        layout_defensa.setContentsMargins(20, 16, 20, 16)
+        layout_defensa.setSpacing(12)
+        
+        lbl_defensa_titulo = QLabel("Zona de Evaluación: Controles de Verificación")
+        lbl_defensa_titulo.setStyleSheet("color: #0F172A; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;")
+        layout_defensa.addWidget(lbl_defensa_titulo)
 
-    def aplicar_sombra(self, widget):
-        sombra = QGraphicsDropShadowEffect()
-        sombra.setBlurRadius(16)
-        sombra.setColor(QColor(15, 23, 42, 18))  
-        sombra.setOffset(0, 4)
-        widget.setGraphicsEffect(sombra)
+        grid_inputs = QGridLayout()
+        grid_inputs.setHorizontalSpacing(20)
+        grid_inputs.setVerticalSpacing(10)
+
+        # Campo: Límite por izquierda
+        lbl_lim_izq = QLabel("Lim (x→a⁻):")
+        lbl_lim_izq.setStyleSheet("font-size: 11px; color: #475569; font-weight: 600;")
+        self.input_lim_izq = QLineEdit()
+        self.input_lim_izq.setPlaceholderText("Ej: 5, inf o -inf")
+        self.estilar_input(self.input_lim_izq)
+        grid_inputs.addWidget(lbl_lim_izq, 0, 0)
+        grid_inputs.addWidget(self.input_lim_izq, 0, 1)
+        
+        # Campo: Existencia del límite global
+        lbl_existe = QLabel("¿Existe lim?:")
+        lbl_existe.setStyleSheet("font-size: 11px; color: #475569; font-weight: 600;")
+        self.combo_existe = QComboBox()
+        self.combo_existe.addItems(["[ Seleccione ]", "Sí", "No"])
+        self.estilar_combo(self.combo_existe)
+        grid_inputs.addWidget(lbl_existe, 1, 0)
+        grid_inputs.addWidget(self.combo_existe, 1, 1)
+
+        # Campo: Límite por derecha
+        lbl_lim_der = QLabel("Lim (x→a⁺):")
+        lbl_lim_der.setStyleSheet("font-size: 11px; color: #475569; font-weight: 600;")
+        self.input_lim_der = QLineEdit()
+        self.input_lim_der.setPlaceholderText("Ej: 5, inf o -inf")
+        self.estilar_input(self.input_lim_der)
+        grid_inputs.addWidget(lbl_lim_der, 0, 2)
+        grid_inputs.addWidget(self.input_lim_der, 0, 3)
+
+        # Campo: Valor real en el punto crítico
+        lbl_fa = QLabel("Valor f(a):")
+        lbl_fa.setStyleSheet("font-size: 11px; color: #475569; font-weight: 600;")
+        self.input_fa = QLineEdit()
+        self.input_fa.setPlaceholderText("Ej: 4 o No existe")
+        self.estilar_input(self.input_fa)
+        grid_inputs.addWidget(lbl_fa, 1, 2)
+        grid_inputs.addWidget(self.input_fa, 1, 3)
+
+        # Campo: Tipo de Continuidad / Discontinuidad
+        lbl_res_concl = QLabel("Tipo Discont:")
+        lbl_res_concl.setStyleSheet("font-size: 11px; color: #475569; font-weight: 600;")
+        self.combo_continuidad = QComboBox()
+        self.combo_continuidad.addItems([
+            "[ Seleccione clasificación ]", 
+            "Continua en x = a", 
+            "Evitable / Removible", 
+            "Esencial de Salto Finito", 
+            "Asintótica / Infinita"
+        ])
+        self.estilar_combo(self.combo_continuidad)
+        grid_inputs.addWidget(lbl_res_concl, 2, 0)
+        grid_inputs.addWidget(self.combo_continuidad, 2, 1, 1, 3) 
+        
+        layout_defensa.addLayout(grid_inputs)
+
+        layout_accion = QHBoxLayout()
+        layout_accion.setSpacing(14)
+        
+        self.btn_validar = QPushButton("Verificar respuestas")
+        self.btn_validar.setStyleSheet("""
+            QPushButton {
+                background-color: #3B82F6; color: #FFFFFF; font-weight: 700; font-size: 12px;
+                padding: 10px 20px; border-radius: 6px; border: none; min-width: 160px;
+            }
+            QPushButton:hover { background-color: #2563EB; }
+        """)
+        self.btn_validar.clicked.connect(self.procesar_verificacion)
+        
+        self.lbl_validacion = QLabel("Esperando respuestas...")
+        self.lbl_validacion.setStyleSheet("color: #64748B; font-size: 12px; font-weight: 500;")
+        
+        layout_accion.addWidget(self.btn_validar)
+        layout_accion.addWidget(self.lbl_validacion, 1)
+        layout_defensa.addLayout(layout_accion)
+
+        panel_grafico.addWidget(self.card_defensa)
+
+        layout_principal.addWidget(scroll_area, 43)
+        layout_principal.addLayout(panel_grafico, 57)
+
+    def estilar_consola(self, text_edit):
+        text_edit.setStyleSheet("""
+            QTextEdit {
+                background-color: #1E293B; color: #93C5FD;
+                font-family: 'Consolas', 'Courier New', monospace; font-size: 12px;
+                border-radius: 12px; padding: 14px; border: 1px solid #334155;
+            }
+        """)
+
+    def estilar_input(self, qlineedit):
+        qlineedit.setStyleSheet("""
+            QLineEdit {
+                background-color: #FFFFFF; border: 1px solid #CBD5E1; 
+                padding: 6px 10px; border-radius: 6px; font-size: 11px; color: #1E293B;
+            }
+            QLineEdit:focus { border: 1px solid #3B82F6; }
+        """)
+
+    def estilar_combo(self, qcombobox):
+        qcombobox.setStyleSheet("""
+            QComboBox {
+                background-color: #FFFFFF; 
+                border: 1px solid #CBD5E1; 
+                padding: 6px 12px; 
+                border-radius: 6px; 
+                font-family: 'Segoe UI';
+                font-size: 11px; 
+                color: #1E293B;
+            }
+            QComboBox:focus { 
+                border: 1px solid #3B82F6; 
+            }
+            QComboBox::drop-down { 
+                border: none; 
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 24px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #FFFFFF;
+                border: 1px solid #E2E8F0;
+                border-radius: 8px;
+                padding: 4px;
+                font-family: 'Segoe UI';
+                font-size: 11px;
+                color: #1E293B;
+                selection-background-color: #3B82F6;
+                selection-color: #FFFFFF;
+            }
+        """)
+        qcombobox.setView(QListView(self))
 
     def mostrar_datos_modulo_limites(self, modelo):
+        """Muestra el planteamiento del problema utilizando los datos del modelo."""
         self.modelo_actual = modelo  
-        self.lbl_caso_titulo.setText(f"MÓDULO DE LÍMITES: {modelo.nombre_caso.upper()}")
+        self.lbl_caso_titulo.setText("MÓDULO DE LÍMITES · EJERCICIO ASIGNADO")
+        
         a = modelo.a
         d1, d2, d4, d5 = modelo.dígitos[0], modelo.dígitos[1], modelo.dígitos[3], modelo.dígitos[4]
 
-        if modelo.caso == 1:
-            texto_f = f"f(x) = [ (x - {a})(x + {d1}) ] / (x - {a})   |   Si x ≠ {a}"
-        elif modelo.caso == 2:
-            texto_f = f"f(x) =\n• Tramo 1: x + {d2}   si x < {a}\n• Tramo 2: x + {d4}   si x ≥ {a}"
-        else:
-            texto_f = f"f(x) = ({d5} + 1) / (x - {a})   |   Asíntota vertical en x = {a}"
+        texto_origen = (
+            f"• Entrada del Sistema (RUT Evaluado): {getattr(modelo, 'rut_origen', 'Activo')}\n"
+            f"• Punto Crítico Asignado (a): x = {a}\n"
+            f"• Algoritmo de Selección Utilizado:\n"
+            f"  La función por tramos condicionales se ha estructurado utilizando los\n"
+            f"  dígitos específicos del RUT para parametrizar pendientes y desplazamientos.\n"
+            f"  Regla del Caso actual: Caso de estudio Tipo {modelo.caso} configurado."
+        )
+        self.txt_origen_rut.setPlainText(texto_origen)
 
-        self.lbl_expresion.setText(texto_f)
+        if modelo.caso == 1:
+            texto_marco = (
+                f"Función matemática propuesta por tramos:\n"
+                f"  f(x) = [ (x - {a}) * (x + {d1}) ] / (x - {a})    si x != {a}\n\n"
+                f"Instrucciones de análisis analítico:\n"
+                f"1. Observe la tendencia gráfica en el entorno del punto crítico x = {a}.\n"
+                f"2. Utilice la tabla de evidencia lateral computacional para registrar\n"
+                f"   valores numéricos a medida que 'x' se aproxima por la izquierda y derecha.\n"
+                f"3. Evalúe analíticamente si la indeterminación puede simplificarse.\n"
+                f"4. Determine si f({a}) está definida o no en el campo real."
+            )
+        elif modelo.caso == 2:
+            texto_marco = (
+                f"Función matemática propuesta por tramos condicionales:\n"
+                f"  Tramo Izquierdo: f(x) = x + {d2}   si x < {a}\n"
+                f"  Tramo Derecho:   f(x) = x + {d4}   si x >= {a}\n\n"
+                f"Instrucciones de análisis analítico:\n"
+                f"1. Evalúe el comportamiento de f(x) cuando se acerca a x = {a} desde valores menores.\n"
+                f"2. Evalúe el comportamiento en el tramo derecho desde valores mayores.\n"
+                f"3. Compare si ambas trayectorias convergen al mismo número real.\n"
+                f"4. Verifique a cuál de los dos tramos pertenece legalmente el punto exacto x = {a}."
+            )
+        else:
+            texto_marco = (
+                f"Función racional propuesta para estudio de asíntotas:\n"
+                f"  f(x) = {d5 + 1} / (x - {a})\n\n"
+                f"Instrucciones de análisis analítico:\n"
+                f"1. Analice qué ocurre con el denominador cuando x → {a}⁻ y cuando x → {a}⁺.\n"
+                f"2. Recuerde las propiedades de una constante dividida por un número infinitesimal.\n"
+                f"3. Defina si el límite crece sin cota o si se estabiliza en algún valor.\n"
+                f"4. Determine la existencia de la función en la coordenada exacta de la asíntota."
+            )
+        self.txt_marco_teorico.setPlainText(texto_marco)
         
-        self.input_limite_defensa.clear()
+        self.input_lim_izq.clear()
+        self.input_lim_der.clear()
+        self.input_fa.clear()
+        self.combo_existe.setCurrentIndex(0)
         self.combo_continuidad.setCurrentIndex(0)
-        self.lbl_validacion.setText("Esperando respuestas para el nuevo caso...")
-        self.lbl_validacion.setStyleSheet("background-color: #F1F5F9; color: #475569; font-weight: bold; font-size: 13px; padding: 12px; border-radius: 10px;")
+        self.lbl_validacion.setText("Esperando respuestas...")
         
         self.tabla_limites.clearContents()
-
         t_izq, t_der = modelo.generar_tabla_valores()
         for i in range(4):
-            self.tabla_limites.setItem(i, 0, QTableWidgetItem(f"{t_izq[i][0]:.4f}"))
-            val_y_izq = "Indefinido" if t_izq[i][1] is None else f"{t_izq[i][1]:.4f}"
-            self.tabla_limites.setItem(i, 1, QTableWidgetItem(val_y_izq))
+            item_x_izq = QTableWidgetItem(f"{t_izq[i][0]:.4f}")
+            item_x_izq.setForeground(QColor("#38BDF8")) 
+            self.tabla_limites.setItem(i, 0, item_x_izq)
             
-            self.tabla_limites.setItem(i, 2, QTableWidgetItem(f"{t_der[i][0]:.4f}"))
+            val_y_izq = "Indefinido" if t_izq[i][1] is None else f"{t_izq[i][1]:.4f}"
+            item_y_izq = QTableWidgetItem(val_y_izq)
+            self.tabla_limites.setItem(i, 1, item_y_izq)
+            
+            item_x_der = QTableWidgetItem(f"{t_der[i][0]:.4f}")
+            item_x_der.setForeground(QColor("#38BDF8"))
+            self.tabla_limites.setItem(i, 2, item_x_der)
+            
             val_y_der = "Indefinido" if t_der[i][1] is None else f"{t_der[i][1]:.4f}"
-            self.tabla_limites.setItem(i, 3, QTableWidgetItem(val_y_der))
+            item_y_der = QTableWidgetItem(val_y_der)
+            self.tabla_limites.setItem(i, 3, item_y_der)
 
         self.lienzo_grafico.vincular_modelo(modelo)
 
-    def ejecutar_autovalidacion(self):
-        if not self.modelo_actual:
-            return
+    def procesar_verificacion(self):
+        """Lógica de verificación desacoplada y limpia de tipos de datos nativos de Qt."""
+        try:
+            if not hasattr(self, 'modelo_actual') or self.modelo_actual is None:
+                self.lbl_validacion.setStyleSheet("color: #EF4444; font-weight: 700;")
+                self.lbl_validacion.setText("❌ Error: Modelo matemático no inicializado.")
+                return
 
-        texto_limite = self.input_limite_defensa.text().strip().lower()
-        indice_combobox = self.combo_continuidad.currentIndex()
+            # Captura de textos de la UI de forma segura
+            txt_izq = str(self.input_lim_izq.text()).strip().lower()
+            txt_der = str(self.input_lim_der.text()).strip().lower()
+            txt_fa = str(self.input_fa.text()).strip().lower()
+            
+            txt_existe = str(self.combo_existe.currentText()).strip().lower()
+            txt_cont = str(self.combo_continuidad.currentText()).strip().lower()
 
-        if not texto_limite or indice_combobox == 0:
-            self.lbl_validacion.setText("Por favor, completa ambos campos para verificar.")
-            self.lbl_validacion.setStyleSheet("background-color: #FEF3C7; color: #D97706; font-weight: bold; font-size: 13px; padding: 12px; border-radius: 10px;")
-            return
+            # Forzar validación de campos obligatorios
+            if not txt_izq or not txt_der or not txt_fa or "[ seleccione" in txt_existe or "[ seleccione" in txt_cont:
+                self.lbl_validacion.setStyleSheet("color: #EA580C; font-weight: 700;")
+                self.lbl_validacion.setText("⚠️ Completa todas las opciones de la zona de evaluación.")
+                return
 
-        limite_esperado_correcto = False
-        caso_esperado_correcto = False
+            # Normalizador universal de Strings (compara exclusivamente textos)
+            def normalizar_valor(val):
+                s = str(val).strip().lower()
+                if s in ["inf", "infinity", "+inf", "infinito", "float('inf')"]: return "inf"
+                if s in ["-inf", "-infinity", "-infinito", "float('-inf')"]: return "-inf"
+                if s in ["no existe", "indefinido", "indeterminado", "none", "null"]: return "no existe"
+                try:
+                    return str(round(float(s), 2))
+                except (ValueError, TypeError):
+                    return s
 
-        if self.modelo_actual.caso == 1:
-            valor_real_l = self.modelo_actual.a + self.modelo_actual.dígitos[0]
-            caso_esperado_correcto = (indice_combobox == 2)
-            try:
-                limite_esperado_correcto = abs(float(texto_limite) - valor_real_l) < 0.01
-            except ValueError:
-                limite_esperado_correcto = False
+            user_izq = normalizar_valor(txt_izq)
+            user_der = normalizar_valor(txt_der)
+            user_fa = normalizar_valor(txt_fa)
 
-        elif self.modelo_actual.caso == 2:
-            caso_esperado_correcto = (indice_combobox == 3)
-            limite_esperado_correcto = ("no existe" in texto_limite or "no" in texto_limite)
+            # Extraer respuestas de soporte de forma segura
+            sol_izq, sol_der, sol_existe, sol_fa, sol_caso_idx = self.modelo_actual.obtener_respuestas_correctas()
+            
+            correct_izq = normalizar_valor(sol_izq)
+            correct_der = normalizar_valor(sol_der)
+            correct_fa = normalizar_valor(sol_fa)
+            
+            # Evaluar textos de ComboBoxes de forma explícita
+            correct_existe = "sí" if int(sol_existe) == 1 else "no"
+            
+            mapeo_casos = {
+                1: "continua en x = a",
+                2: "evitable / removible",
+                3: "esencial de salto finito",
+                4: "asintótica / infinita"
+            }
+            correct_cont = mapeo_casos.get(int(sol_caso_idx), "")
 
-        elif self.modelo_actual.caso == 3:
-            caso_esperado_correcto = (indice_combobox == 4)
-            limite_esperado_correcto = ("no existe" in texto_limite or "infinito" in texto_limite or "no" in texto_limite)
+            # Comparativa libre de punteros numéricos de C++
+            errores = []
+            if user_izq != correct_izq: errores.append("Límite Izquierdo")
+            if user_der != correct_der: errores.append("Límite Derecho")
+            if user_fa != correct_fa: errores.append("Valor f(a)")
+            if txt_existe != correct_existe: errores.append("¿Existe Límite?")
+            if txt_cont != correct_cont: errores.append("Clasificación de Continuidad")
 
-        if limite_esperado_correcto and caso_esperado_correcto:
-            self.lbl_validacion.setText("✓ ANÁLISIS CORRECTO: ¡Excelente defensa matemática!")
-            self.lbl_validacion.setStyleSheet("background-color: #DCFCE7; color: #166534; font-weight: bold; font-size: 13px; padding: 12px; border-radius: 10px; border: 1px solid #BBF7D0;")
+            if not errores:
+                self.lbl_validacion.setStyleSheet("color: #16A34A; font-weight: 700; font-size: 12px;")
+                self.lbl_validacion.setText("🎉 ¡Perfecto! El análisis analítico es completamente correcto.")
+            else:
+                self.lbl_validacion.setStyleSheet("color: #DC2626; font-weight: 700;")
+                self.lbl_validacion.setText(f"❌ Incorrecto en: {', '.join(errores)}.")
+
+        except Exception as e:
+            self.lbl_validacion.setStyleSheet("color: #7F1D1D; background-color: #FEE2E2; font-weight: bold;")
+            self.lbl_validacion.setText(f"⚠️ Error controlado en validación: {str(e)}")
+
+
+class SimuladorModeloMatematico:
+    def __init__(self, caso=1):
+        self.caso = caso  
+        self.a = 2        
+        self.dígitos = [3, 1, 4, 5, 2] 
+
+    def evaluar_funcion(self, x):
+        if abs(x - self.a) < 1e-5:
+            if self.caso == 1: return None
+            if self.caso == 2: return x + self.dígitos[3] 
+            if self.caso == 3: return None
+
+        if self.caso == 1:
+            return ((x - self.a) * (x + self.dígitos[0])) / (x - self.a)
+        elif self.caso == 2:
+            if x < self.a:
+                return x + self.dígitos[1]
+            else:
+                return x + self.dígitos[3]
         else:
-            self.lbl_validacion.setText("✗ ANÁLISIS INCORRECTO: Revisa la gráfica o las aproximaciones.")
-            self.lbl_validacion.setStyleSheet("background-color: #FEE2E2; color: #991B1B; font-weight: bold; font-size: 13px; padding: 12px; border-radius: 10px; border: 1px solid #FCA5A5;")
+            return (self.dígitos[4] + 1) / (x - self.a)
+
+    def generar_tabla_valores(self):
+        t_izq = [(self.a - delta, self.evaluar_funcion(self.a - delta)) for delta in [0.1, 0.01, 0.001, 0.0001]]
+        t_der = [(self.a + delta, self.evaluar_funcion(self.a + delta)) for delta in [0.1, 0.01, 0.001, 0.0001]]
+        return t_izq, t_der
+
+    def obtener_respuestas_correctas(self):
+        """Retorna las soluciones estructuradas de forma consistente como tipos nativos estándar"""
+        if self.caso == 1:
+            val_lim = round(float(self.a + self.dígitos[0]), 2)
+            return val_lim, val_lim, 1, "no existe", 2  # 1=Sí existe, 2=Evitable
+        elif self.caso == 2:
+            val_izq = round(float(self.a + self.dígitos[1]), 2)
+            val_der = round(float(self.a + self.dígitos[3]), 2)
+            return val_izq, val_der, 2, val_der, 3      # 2=No existe, 3=Salto Finito
+        else:
+            return "-inf", "inf", 2, "no existe", 4     # 2=No existe, 4=Asintótica
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    ventana = VistaLimites()
+    
+    # Prueba cambiando a caso=1, caso=2 o caso=3
+    modelo_prueba = SimuladorModeloMatematico(caso=1)
+    ventana.mostrar_datos_modulo_limites(modelo_prueba)
+    
+    ventana.setWindowTitle("Plataforma de Evaluación de Límites Analíticos")
+    ventana.resize(1024, 700)
+    ventana.show()
+    sys.exit(app.exec())
