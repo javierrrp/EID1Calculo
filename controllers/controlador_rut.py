@@ -6,6 +6,8 @@ from models.modelo_rut import (
     calcular_variable_auxiliar,
     construir_ecuacion,
     clasificar_conica,
+    construir_forma_canonica,
+    expansion_canonica_a_general,
     determinar_caso_limite,
 )
 
@@ -30,6 +32,12 @@ class ControladorRut:
             self.vista.mostrar_ecuacion(
                 "── Construcción de la Ecuación General ──\nIngrese un RUT válido para continuar."
             )
+            self.vista.mostrar_canonica(
+                "── Forma Canónica ──\nIngrese un RUT válido para continuar."
+            )
+            self.vista.mostrar_inverso(
+                "── Procedimiento Inverso ──\nIngrese un RUT válido para continuar."
+            )
             self.vista.mostrar_conica("—", "—", "—")
             return
 
@@ -47,19 +55,35 @@ class ControladorRut:
         tipo, explicacion = clasificar_conica(datos_ec["A"], datos_ec["B"])
         self.vista.mostrar_conica(tipo, datos_ec["ecuacion_str"], explicacion)
 
-        # ── Paso 5: Caso de límite (d8) ──────────────────────────
-        # Mantenemos el cálculo matemático intacto para guardarlo en el diccionario,
-        # así el controlador de Ricardo (límites) podrá consumirlo sin problemas.
+        # ── Paso 5: Forma canónica ───────────────────────────────
+        datos_canon = construir_forma_canonica(
+            datos_ec["A"], datos_ec["B"],
+            datos_ec["C"], datos_ec["D"], datos_ec["E"]
+        )
+        self.vista.mostrar_canonica(datos_canon["log"])
+
+        # ── Paso 6: Procedimiento inverso (canónica → general) ───
+        datos_inv = expansion_canonica_a_general(
+            datos_ec["A"], datos_ec["B"],
+            datos_canon["h"], datos_canon["k"],
+            datos_canon.get("lado_der", 0),
+            tipo
+        )
+        self.vista.mostrar_inverso(datos_inv["log"])
+
+        # ── Paso 7: Caso de límite (d8) ──────────────────────────
         caso_limite = determinar_caso_limite(digitos[7])
 
         # ── Guardar para los otros controladores ─────────────────
         self.datos_ecuacion = {
             **datos_ec,
+            **datos_canon,
             "digitos": digitos,
             "dv": dv,
             "v": v,
             "tipo_conica": tipo,
             "caso_limite": caso_limite,
+            "datos_canon": datos_canon,
         }
 
         self.vista._mostrar_tab("resultado")
