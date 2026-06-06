@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import *
-from PyQt6.QtGui import QPainter, QPen, QColor
+from PyQt6.QtGui import QPainter, QPen, QColor, QFont, QBrush
 from PyQt6.QtCore import Qt
 
 class VistaConicas(QWidget):
@@ -11,46 +11,89 @@ class VistaConicas(QWidget):
         layout_principal = QHBoxLayout(self)
 
         panel_izquierdo = QWidget()
+        panel_izquierdo.setStyleSheet("background: transparent;")
         layout_izquierdo = QVBoxLayout(panel_izquierdo)
+        layout_izquierdo.setContentsMargins(0, 0, 0, 0)
+        layout_izquierdo.setSpacing(10)
+ 
 
         self.lbl_titulo = QLabel("Analizando Conica...")
-        self.lbl_titulo.setStyleSheet("font-size: 16px; font-weight: bold;")
-        layout_izquierdo.addWidget(self.lbl_titulo)
+        self.lbl_titulo.setWordWrap(True)
+        self.lbl_titulo.setStyleSheet(
+            "font-size: 15px; font-weight: 800; color: #0F172A; "
+            "background: #F1F5F9; border-radius: 10px; padding: 10px 14px;"
+        )
 
-        layout_izquierdo.addWidget(QLabel("Desarrollo matematico:"))
+        lbl_proc = QLabel("Desarrollo matemático (General → Canónica):")
+        lbl_proc.setStyleSheet("font-size: 12px; font-weight: 700; color: #334155;")
+        layout_izquierdo.addWidget(lbl_proc)
+
         self.txt_procedimiento = QTextEdit()
         self.txt_procedimiento.setReadOnly(True)
+        self.txt_procedimiento.setStyleSheet("""
+            QTextEdit {
+                        background-color: #1E293B;
+                        color: #A5F3FC;
+                        font-family: 'Consolas', monospace;
+                        font-size: 12px;
+                        border-radius: 10px;
+                        padding: 12px;
+                        border: none;
+            }
+                                             
+        """)
+        self.txt_procedimiento.setMinimumHeight(160)
         layout_izquierdo.addWidget(self.txt_procedimiento)
 
-        layout_izquierdo.addWidget(QLabel("Procedimiento Inverso (Canónica -> General):"))
+        label_inverso = QLabel("Procedimiento Inverso (Canónica -> General):")
+        label_inverso.setStyleSheet("font-size: 12px; font-weight: 700; color: #334155;")
+        layout_izquierdo.addWidget(label_inverso)
+
         self.txt_procedimiento_inverso = QTextEdit()
         self.txt_procedimiento_inverso.setReadOnly(True)
+        self.txt_procedimiento_inverso.setStyleSheet("""
+            QTextEdit {
+                background-color: #1E293B;
+                color: #FDE68A;
+                font-family: 'Consolas', monospace;
+                font-size: 12px;
+                border-radius: 10px;
+                padding: 12px;
+                border: none;
+            }
+        """)
+        self.txt_procedimiento_inverso.setMinimumHeight(160)
         layout_izquierdo.addWidget(self.txt_procedimiento_inverso)
-        
 
-        layout_izquierdo.addWidget(QLabel("Elementos geometricos:"))
-
-        layout_izquierdo.addWidget(QLabel("Centro (h, k):"))
-        self.input_centro = QLineEdit()
-        layout_izquierdo.addWidget(self.input_centro)
-
-        layout_izquierdo.addWidget(QLabel("Radio:"))
-        self.input_radio = QLineEdit()
-        layout_izquierdo.addWidget(self.input_radio)
-
-        layout_izquierdo.addWidget(QLabel("Focos / Vertices:"))
-        self.input_focos = QLineEdit()
-        layout_izquierdo.addWidget(self.input_focos)
-        
-        #boton para verificar
-        self.btn_verificar = QPushButton("Verificar Respuestas")
-        self.btn_verificar.setStyleSheet("background-color: #3B82F6; color: white; font-weight: bold; padding: 8px;")
-        layout_izquierdo.addWidget(self.btn_verificar)
-
+        layout_izquierdo.addStretch() 
         layout_principal.addWidget(panel_izquierdo, stretch=1)
 
+        # ── PANEL DERECHO: plano con panel flotante ────────────
+
+        panel_derecho = QWidget()
+        panel_derecho.setStyleSheet("background: transparent;")
+        layout_derecho = QVBoxLayout(panel_derecho)
+        layout_derecho.setContentsMargins(0, 0, 0, 0)
+        layout_derecho.setSpacing(6)
+
+        label_ayuda = QLabel("🖱 Arrastra para mover · Rueda para zoom · Completa los campos en la gráfica")
+        label_ayuda.setStyleSheet(
+            "font-size: 10px; color: #94A3B8; font-style: italic; padding-left: 4px;"
+        )
+        layout_derecho.addWidget(label_ayuda)
+        
         self.plano = PlanoCartesiano()
-        layout_principal.addWidget(self.plano, stretch=1) 
+        self.plano.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        layout_derecho.addWidget(self.plano)        
+
+        layout_principal.addWidget(panel_derecho, stretch=1)
+ 
+        # ── Alias para que el controlador siga funcionando ─────
+        # El controlador accede a self.vista.input_centro, etc.
+        self.input_centro = self.plano.input_centro
+        self.input_radio   = self.plano.input_radio
+        self.input_focos   = self.plano.input_focos
+        self.btn_verificar = self.plano.btn_verificar 
 
 
 
@@ -58,7 +101,7 @@ class VistaConicas(QWidget):
 class PlanoCartesiano(QWidget):
     def __init__(self):
         super().__init__()
-        self.setMinimumSize(400, 400)
+        self.setMinimumSize(420, 440)
         # Fondo blanco para que parezca hoja de cuaderno
         self.setStyleSheet("background-color: white; border: 2px solid #bdc3c7; border-radius: 8px;")
 
@@ -73,6 +116,94 @@ class PlanoCartesiano(QWidget):
         self.last_mouse_pos = None
         self.separacion = 25
 
+        self.panel_inputs = QFrame(self)
+
+        self.panel_inputs.setObjectName("panel_inputs")
+        self.panel_inputs.setStyleSheet("""
+                                        QFrame#panel_inputs {
+                                            background-color: rgba(255, 255, 255, 200)
+                                            border: 1px solid #bdc3c7;
+                                            border-radius: 12px;
+                                        }
+                                    """)
+        sombra = QGraphicsDropShadowEffect()
+        sombra.setBlurRadius(18)
+        sombra.setColor(QColor(15,23,42,40))
+        sombra.setOffset(0, 4)
+        self.panel_inputs.setGraphicsEffect(sombra)
+
+        lay = QVBoxLayout(self.panel_inputs)
+        lay.setContentsMargins(14, 12, 14, 12)
+        lay.setSpacing(8)
+
+        titulo_panel = QLabel("Controles de Visualización")
+        titulo_panel.setStyleSheet(
+            "font-size: 11px; font-weight: 800; color: #0F172A; "
+            "letter-spacing: 0.4px; background: transparent; border: none;"
+        )
+        lay.addWidget(titulo_panel)
+
+        self.input_centro = self._hacer_campo(lay, "Centro (h, k):", "Ej: (2, -3)")
+        self.input_radio   = self._hacer_campo(lay, "Radio / Semieje:", "Ej: 4.5")
+        self.input_focos   = self._hacer_campo(lay, "Focos / Vértices:", "Ej: (1,0) y (-1,0)")
+ 
+        self.btn_verificar = QPushButton("Verificar respuestas")
+        self.btn_verificar.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_verificar.setStyleSheet("""
+            QPushButton {
+                background-color: #3B82F6; color: white;
+                font-weight: 700; font-size: 12px;
+                padding: 7px 10px; border-radius: 8px; border: none;
+            }
+            QPushButton:hover  { background-color: #2563EB; }
+            QPushButton:pressed{ background-color: #1D4ED8; }
+        """)
+        lay.addWidget(self.btn_verificar)
+ 
+        self.panel_inputs.adjustSize()
+    
+    
+    def _hacer_campo(self, parent_lay, etiqueta: str, placeholder: str) -> QLineEdit:
+        fila = QHBoxLayout()
+        fila.setSpacing(6)
+        lbl = QLabel(etiqueta)
+        lbl.setFixedWidth(120)
+        lbl.setStyleSheet("font-size: 11px; font-weight: 600; color: #334155; "
+                            "background: transparent; border: none;")
+        campo = QLineEdit()
+        campo.setPlaceholderText(placeholder)
+        campo.setFixedHeight(28)
+        campo.setStyleSheet("""
+            QLineEdit {
+                            background-color: #F8FAFC; 
+                            border: 1px solid #CBD5E1;
+                            border-radius: 6px; 
+                            padding: 2px 8px;
+                            font-size: 12px;
+                            color: #1E293B;
+            }
+            QLineEdit:focus {
+                            border: 1.5px solid #3B82F6;
+                            background-color: #FFFFFF;
+            }
+                            """)
+        fila.addWidget(lbl)
+        fila.addWidget(campo)
+        parent_lay.addLayout(fila)
+        return campo
+    
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._reposicionar_panel()
+
+    def _reposicionar_panel(self):
+        self.panel_inputs.adjustSize()
+        margen = 14
+        w = self.panel_inputs.width()
+        h = self.panel_inputs.height()
+        self.panel_inputs.move(self.width() - w - margen,
+                               self.height() - h - margen)
+ 
     def actualizar_figura(self, h, k, tipo=None, radio=None):
         self.h = h
         self.k = k
@@ -180,8 +311,7 @@ class PlanoCartesiano(QWidget):
                     painter.drawText(centro_x + 5, py + 4, texto_numero)
 
         # Ejes principales (El 0)
-        pen_ejes = QPen(QColor(50, 50, 50), 2)
-        painter.setPen(pen_ejes)
+        painter.setPen(QPen(QColor(50, 50, 50), 2))
         painter.drawLine(0, centro_y, ancho, centro_y)
         painter.drawLine(centro_x, 0, centro_x, alto)
 
@@ -201,3 +331,5 @@ class PlanoCartesiano(QWidget):
             painter.setBrush(QColor("red"))
             painter.setPen(Qt.GlobalColor.transparent)
             painter.drawEllipse(int(px) - 4, int(py) - 4, 8, 8)
+
+            
