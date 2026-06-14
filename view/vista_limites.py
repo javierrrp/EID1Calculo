@@ -2,11 +2,11 @@ import sys
 from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QGridLayout,
                              QFrame, QTableWidget, QTableWidgetItem, QHeaderView,
                              QLineEdit, QComboBox, QScrollArea, QTextEdit, QPushButton, QListView)
-from PyQt6.QtCore import Qt, QPointF, QPoint
-from PyQt6.QtGui import QColor, QPainter, QPen, QBrush, QWheelEvent, QMouseEvent, QFont
+from PyQt6.QtCore import Qt, QPointF, QPoint, QRegularExpression
+from PyQt6.QtGui import QColor, QPainter, QPen, QBrush, QWheelEvent, QMouseEvent, QFont, QRegularExpressionValidator
 
 class LienzoLimites(QWidget):
-    """Lienzo matemático manual mediante QPainter con soporte de Zoom y Arrastre Interactivo (Pan & Zoom)"""
+    """Lienzo matemático manual mediante QPainter con soporte de Zoom, Arrastre e inmunidad a fallos."""
     def __init__(self):
         super().__init__()
         self.setMinimumSize(400, 510) 
@@ -115,62 +115,77 @@ class LienzoLimites(QWidget):
                     painter.drawLine(centro_x - 3, pos_y, centro_x + 3, pos_y)
                     painter.drawText(x_num, pos_y + 4, f"{u}")
                 
-        if not self.modelo_vinculado or not self.modelo_vinculado.dígitos:
+        # --- MANEJO DE ERRORES UX: Si no hay modelo válido asignado, aborta el ploteo de curvas de forma segura ---
+        if not self.modelo_vinculado or not hasattr(self.modelo_vinculado, 'dígitos') or not self.modelo_vinculado.dígitos:
             return
 
-        pen_funcion = QPen(QColor("#0284C7"), 3, Qt.PenStyle.SolidLine)
-        painter.setPen(pen_funcion)
-        ultimo_punto_valido = None
-        margen_renderizado = alto * 2
-        
-        for px in range(ancho):
-            cx = (px - centro_x) / escala
-            cy = self.modelo_vinculado.evaluar_funcion(cx)
+        try:
+            pen_funcion = QPen(QColor("#0284C7"), 3, Qt.PenStyle.SolidLine)
+            painter.setPen(pen_funcion)
+            ultimo_punto_valido = None
+            margen_renderizado = alto * 2
             
-            if cy is not None:
-                py = centro_y - int(cy * escala)
-                if -margen_renderizado <= py <= alto + margen_renderizado:
-                    punto_actual = QPointF(px, py)
-                    if ultimo_punto_valido:
-                        umbral_ruptura = 0.08 / self.factor_zoom
-                        if self.modelo_vinculado.caso == 2 and abs(cx - self.modelo_vinculado.a) < umbral_ruptura:
-                            ultimo_punto_valido = None
-                        elif self.modelo_vinculado.caso == 3 and abs(cx - self.modelo_vinculado.a) < (0.1 / self.factor_zoom):
-                            ultimo_punto_valido = None
+            for px in range(ancho):
+                cx = (px - centro_x) / escala
+                
+                # Evaluación resguardada frente a fallas del modelo
+                try:
+                    cy = self.modelo_vinculado.evaluar_funcion(cx)
+                except Exception:
+                    cy = None
+                
+                if cy is not None:
+                    try:
+                        py = centro_y - int(cy * escala)
+                        if -margen_renderizado <= py <= alto + margen_renderizado:
+                            punto_actual = QPointF(px, py)
+                            if ultimo_punto_valido:
+                                umbral_ruptura = 0.08 / self.factor_zoom
+                                if self.modelo_vinculado.caso == 2 and abs(cx - self.modelo_vinculado.a) < umbral_ruptura:
+                                    ultimo_punto_valido = None
+                                elif self.modelo_vinculado.caso == 3 and abs(cx - self.modelo_vinculado.a) < (0.1 / self.factor_zoom):
+                                    ultimo_punto_valido = None
+                                else:
+                                    painter.drawLine(ultimo_punto_valido.toPoint(), punto_actual.toPoint())
+                            ultimo_punto_valido = punto_actual
                         else:
-                            painter.drawLine(ultimo_punto_valido.toPoint(), punto_actual.toPoint())
-                    ultimo_punto_valido = punto_actual
+                            ultimo_punto_valido = None
+                    except (OverflowError, ValueError):
+                        ultimo_punto_valido = None
                 else:
                     ultimo_punto_valido = None
-            else:
-                ultimo_punto_valido = None
 
-        pix_a = centro_x + int(self.modelo_vinculado.a * escala)
-        if 0 <= pix_a <= ancho:
-            pen_asintota = QPen(QColor("#FDA4AF"), 1.2, Qt.PenStyle.DashLine)
-            painter.setPen(pen_asintota)
-            painter.drawLine(pix_a, 0, pix_a, alto)
-            
-            painter.setPen(QPen(QColor("#EF4444"), 2.5))
-            if self.modelo_vinculado.caso == 1:
-                lim_teorico = self.modelo_vinculado.a + self.modelo_vinculado.dígitos[0]
-                py_a = centro_y - int(lim_teorico * escala)
-                if 0 <= py_a <= alto:
-                    painter.setBrush(QBrush(QColor("#FFFFFF")))
-                    painter.drawEllipse(pix_a - 4, py_a - 4, 8, 8)
+            # Renderizado seguro de asíntotas y puntos vacíos
+            pix_a = centro_x + int(self.modelo_vinculado.a * escala)
+            if 0 <= pix_a <= ancho:
+                pen_asintota = QPen(QColor("#FDA4AF"), 1.2, Qt.PenStyle.DashLine)
+                painter.setPen(pen_asintota)
+                painter.drawLine(pix_a, 0, pix_a, alto)
                 
-            elif self.modelo_vinculado.caso == 2:
-                d2 = self.modelo_vinculado.dígitos[1]
-                d4 = self.modelo_vinculado.dígitos[3]
-                py_izq = centro_y - int((self.modelo_vinculado.a + d2) * escala)
-                py_der = centro_y - int((self.modelo_vinculado.a + d4) * escala)
-                
-                if 0 <= py_izq <= alto:
-                    painter.setBrush(QBrush(QColor("#FFFFFF")))
-                    painter.drawEllipse(pix_a - 4, py_izq - 4, 8, 8)
-                if 0 <= py_der <= alto:
-                    painter.setBrush(QBrush(QColor("#EF4444")))
-                    painter.drawEllipse(pix_a - 4, py_der - 4, 8, 8)
+                painter.setPen(QPen(QColor("#EF4444"), 2.5))
+                if self.modelo_vinculado.caso == 1:
+                    lim_teorico = self.modelo_vinculado.a + self.modelo_vinculado.dígitos[0]
+                    py_a = centro_y - int(lim_teorico * escala)
+                    if 0 <= py_a <= alto:
+                        painter.setBrush(QBrush(QColor("#FFFFFF")))
+                        painter.drawEllipse(pix_a - 4, py_a - 4, 8, 8)
+                    
+                elif self.modelo_vinculado.caso == 2:
+                    d2 = self.modelo_vinculado.dígitos[1]
+                    d4 = self.modelo_vinculado.dígitos[3]
+                    py_izq = centro_y - int((self.modelo_vinculado.a + d2) * escala)
+                    py_der = centro_y - int((self.modelo_vinculado.a + d4) * escala)
+                    
+                    if 0 <= py_izq <= alto:
+                        painter.setBrush(QBrush(QColor("#FFFFFF")))
+                        painter.drawEllipse(pix_a - 4, py_izq - 4, 8, 8)
+                    if 0 <= py_der <= alto:
+                        painter.setBrush(QBrush(QColor("#EF4444")))
+                        painter.drawEllipse(pix_a - 4, py_der - 4, 8, 8)
+        except Exception as e:
+            # Captura fallos críticos del motor gráfico y pinta un mensaje de emergencia sin tumbar la App
+            painter.setPen(QPen(QColor("#EF4444")))
+            painter.drawText(20, 20, f"Error de renderizado geométrico: {str(e)}")
 
 
 class VistaLimites(QWidget):
@@ -287,11 +302,17 @@ class VistaLimites(QWidget):
         grid_inputs.setHorizontalSpacing(20)
         grid_inputs.setVerticalSpacing(10)
 
+        # --- VALIDACIÓN DE ENTRADAS EN TIEMPO REAL CON EXPRESIONES REGULARES ---
+        # Permite: enteros, decimales con punto/coma, signos de resta, y las cadenas "inf", "-inf", "no existe"
+        regex_matematica = QRegularExpression(r"^-?(?:\d+(?:[\.,]\d*)?|[\.,]\d+|inf|no existe)$")
+        validador_estricto = QRegularExpressionValidator(regex_matematica, self)
+
         # Campo: Límite por izquierda
         lbl_lim_izq = QLabel("Lim (x→a⁻):")
         lbl_lim_izq.setStyleSheet("font-size: 11px; color: #475569; font-weight: 600;")
         self.input_lim_izq = QLineEdit()
         self.input_lim_izq.setPlaceholderText("Ej: 5, inf o -inf")
+        self.input_lim_izq.setValidator(validador_estricto) # <--- CONTROL DE ENTRADA
         self.estilar_input(self.input_lim_izq)
         grid_inputs.addWidget(lbl_lim_izq, 0, 0)
         grid_inputs.addWidget(self.input_lim_izq, 0, 1)
@@ -310,6 +331,7 @@ class VistaLimites(QWidget):
         lbl_lim_der.setStyleSheet("font-size: 11px; color: #475569; font-weight: 600;")
         self.input_lim_der = QLineEdit()
         self.input_lim_der.setPlaceholderText("Ej: 5, inf o -inf")
+        self.input_lim_der.setValidator(validador_estricto) # <--- CONTROL DE ENTRADA
         self.estilar_input(self.input_lim_der)
         grid_inputs.addWidget(lbl_lim_der, 0, 2)
         grid_inputs.addWidget(self.input_lim_der, 0, 3)
@@ -319,6 +341,7 @@ class VistaLimites(QWidget):
         lbl_fa.setStyleSheet("font-size: 11px; color: #475569; font-weight: 600;")
         self.input_fa = QLineEdit()
         self.input_fa.setPlaceholderText("Ej: 4 o No existe")
+        self.input_fa.setValidator(validador_estricto) # <--- CONTROL DE ENTRADA
         self.estilar_input(self.input_fa)
         grid_inputs.addWidget(lbl_fa, 1, 2)
         grid_inputs.addWidget(self.input_fa, 1, 3)
@@ -418,108 +441,121 @@ class VistaLimites(QWidget):
         qcombobox.setView(QListView(self))
 
     def mostrar_datos_modulo_limites(self, modelo):
-        """Muestra el planteamiento del problema utilizando los datos del modelo."""
+        """Muestra el planteamiento del problema utilizando los datos del modelo resguardando inconsistencias de datos."""
+        if modelo is None:
+            self.lbl_validacion.setStyleSheet("color: #EF4444; font-weight: 700;")
+            self.lbl_validacion.setText("❌ Error: Estructura de datos nula suministrada al componente de límites.")
+            return
+
         self.modelo_actual = modelo  
         self.lbl_caso_titulo.setText("MÓDULO DE LÍMITES · EJERCICIO ASIGNADO")
         
-        a = modelo.a
-        d1, d2, d4, d5 = modelo.dígitos[0], modelo.dígitos[1], modelo.dígitos[3], modelo.dígitos[4]
+        try:
+            a = modelo.a
+            d1, d2, d4, d5 = modelo.dígitos[0], modelo.dígitos[1], modelo.dígitos[3], modelo.dígitos[4]
 
-        texto_origen = (
-            f"• Entrada del Sistema (RUT Evaluado): {getattr(modelo, 'rut_origen', 'Activo')}\n"
-            f"• Punto Crítico Asignado (a): x = {a}\n"
-            f"• Algoritmo de Selección Utilizado:\n"
-            f"  La función por tramos condicionales se ha estructurado utilizando los\n"
-            f"  dígitos específicos del RUT para parametrizar pendientes y desplazamientos.\n"
-            f"  Regla del Caso actual: Caso de estudio Tipo {modelo.caso} configurado."
-        )
-        self.txt_origen_rut.setPlainText(texto_origen)
+            texto_origen = (
+                f"• Entrada del Sistema (RUT Evaluado): {getattr(modelo, 'rut_origen', 'Activo')}\n"
+                f"• Punto Crítico Asignado (a): x = {a}\n"
+                f"• Algoritmo de Selección Utilizado:\n"
+                f"  La función por tramos condicionales se ha estructurado utilizando los\n"
+                f"  dígitos específicos del RUT para parametrizar pendientes y desplazamientos.\n"
+                f"  Regla del Caso actual: Caso de estudio Tipo {modelo.caso} configurado."
+            )
+            self.txt_origen_rut.setPlainText(texto_origen)
 
-        if modelo.caso == 1:
-            texto_marco = (
-                f"Función matemática propuesta por tramos:\n"
-                f"  f(x) = [ (x - {a}) * (x + {d1}) ] / (x - {a})    si x != {a}\n\n"
-                f"Instrucciones de análisis analítico:\n"
-                f"1. Observe la tendencia gráfica en el entorno del punto crítico x = {a}.\n"
-                f"2. Utilice la tabla de evidencia lateral computacional para registrar\n"
-                f"   valores numéricos a medida que 'x' se aproxima por la izquierda y derecha.\n"
-                f"3. Evalúe analíticamente si la indeterminación puede simplificarse.\n"
-                f"4. Determine si f({a}) está definida o no en el campo real."
-            )
-        elif modelo.caso == 2:
-            texto_marco = (
-                f"Función matemática propuesta por tramos condicionales:\n"
-                f"  Tramo Izquierdo: f(x) = x + {d2}   si x < {a}\n"
-                f"  Tramo Derecho:   f(x) = x + {d4}   si x >= {a}\n\n"
-                f"Instrucciones de análisis analítico:\n"
-                f"1. Evalúe el comportamiento de f(x) cuando se acerca a x = {a} desde valores menores.\n"
-                f"2. Evalúe el comportamiento en el tramo derecho desde valores mayores.\n"
-                f"3. Compare si ambas trayectorias convergen al mismo número real.\n"
-                f"4. Verifique a cuál de los dos tramos pertenece legalmente el punto exacto x = {a}."
-            )
-        else:
-            texto_marco = (
-                f"Función racional propuesta para estudio de asíntotas:\n"
-                f"  f(x) = {d5 + 1} / (x - {a})\n\n"
-                f"Instrucciones de análisis analítico:\n"
-                f"1. Analice qué ocurre con el denominador cuando x → {a}⁻ y cuando x → {a}⁺.\n"
-                f"2. Recuerde las propiedades de una constante dividida por un número infinitesimal.\n"
-                f"3. Defina si el límite crece sin cota o si se estabiliza en algún valor.\n"
-                f"4. Determine la existencia de la función en la coordenada exacta de la asíntota."
-            )
-        self.txt_marco_teorico.setPlainText(texto_marco)
-        
-        self.input_lim_izq.clear()
-        self.input_lim_der.clear()
-        self.input_fa.clear()
-        self.combo_existe.setCurrentIndex(0)
-        self.combo_continuidad.setCurrentIndex(0)
-        self.lbl_validacion.setText("Esperando respuestas...")
-        
-        self.tabla_limites.clearContents()
-        t_izq, t_der = modelo.generar_tabla_valores()
-        for i in range(4):
-            item_x_izq = QTableWidgetItem(f"{t_izq[i][0]:.4f}")
-            item_x_izq.setForeground(QColor("#38BDF8")) 
-            self.tabla_limites.setItem(i, 0, item_x_izq)
+            if modelo.caso == 1:
+                texto_marco = (
+                    f"Función matemática propuesta por tramos:\n"
+                    f"  f(x) = [ (x - {a}) * (x + {d1}) ] / (x - {a})    si x != {a}\n\n"
+                    f"Instrucciones de análisis analítico:\n"
+                    f"1. Observe la tendencia gráfica en el entorno del punto crítico x = {a}.\n"
+                    f"2. Utilice la tabla de evidencia lateral computacional para registrar\n"
+                    f"   valores numéricos a medida que 'x' se aproxima por la izquierda y derecha.\n"
+                    f"3. Evalúe analíticamente si la indeterminación puede simplificarse.\n"
+                    f"4. Determine si f({a}) está definida o no en el campo real."
+                )
+            elif modelo.caso == 2:
+                texto_marco = (
+                    f"Función matemática propuesta por tramos condicionales:\n"
+                    f"  Tramo Izquierdo: f(x) = x + {d2}   si x < {a}\n"
+                    f"  Tramo Derecho:   f(x) = x + {d4}   si x >= {a}\n\n"
+                    f"Instrucciones de análisis analítico:\n"
+                    f"1. Evalúe el comportamiento de f(x) cuando se acerca a x = {a} desde valores menores.\n"
+                    f"2. Evalúe el comportamiento en el tramo derecho desde valores mayores.\n"
+                    f"3. Compare si ambas trayectorias convergen al mismo número real.\n"
+                    f"4. Verifique a cuál de los dos tramos pertenece legalmente el punto exacto x = {a}."
+                )
+            else:
+                texto_marco = (
+                    f"Función racional propuesta para estudio de asíntotas:\n"
+                    f"  f(x) = {d5 + 1} / (x - {a})\n\n"
+                    f"Instrucciones de análisis analítico:\n"
+                    f"1. Analice qué ocurre con el denominador cuando x → {a}⁻ y cuando x → {a}⁺.\n"
+                    f"2. Recuerde las propiedades de una constante dividida por un número infinitesimal.\n"
+                    f"3. Defina si el límite crece sin cota o si se estabiliza en algún valor.\n"
+                    f"4. Determine la existencia de la función en la coordenada exacta de la asíntota."
+                )
+            self.txt_marco_teorico.setPlainText(texto_marco)
             
-            val_y_izq = "Indefinido" if t_izq[i][1] is None else f"{t_izq[i][1]:.4f}"
-            item_y_izq = QTableWidgetItem(val_y_izq)
-            self.tabla_limites.setItem(i, 1, item_y_izq)
+            # Reset de campos
+            self.input_lim_izq.clear()
+            self.input_lim_der.clear()
+            self.input_fa.clear()
+            self.combo_existe.setCurrentIndex(0)
+            self.combo_continuidad.setCurrentIndex(0)
+            self.lbl_validacion.setText("Esperando respuestas...")
             
-            item_x_der = QTableWidgetItem(f"{t_der[i][0]:.4f}")
-            item_x_der.setForeground(QColor("#38BDF8"))
-            self.tabla_limites.setItem(i, 2, item_x_der)
+            self.tabla_limites.clearContents()
+            t_izq, t_der = modelo.generar_tabla_valores()
             
-            val_y_der = "Indefinido" if t_der[i][1] is None else f"{t_der[i][1]:.4f}"
-            item_y_der = QTableWidgetItem(val_y_der)
-            self.tabla_limites.setItem(i, 3, item_y_der)
+            # Poblar tabla controlando desborde o estructuras rotas
+            for i in range(4):
+                if i < len(t_izq):
+                    item_x_izq = QTableWidgetItem(f"{t_izq[i][0]:.4f}")
+                    item_x_izq.setForeground(QColor("#38BDF8")) 
+                    self.tabla_limites.setItem(i, 0, item_x_izq)
+                    
+                    val_y_izq = "Indefinido" if t_izq[i][1] is None else f"{t_izq[i][1]:.4f}"
+                    self.tabla_limites.setItem(i, 1, QTableWidgetItem(val_y_izq))
+                
+                if i < len(t_der):
+                    item_x_der = QTableWidgetItem(f"{t_der[i][0]:.4f}")
+                    item_x_der.setForeground(QColor("#38BDF8"))
+                    self.tabla_limites.setItem(i, 2, item_x_der)
+                    
+                    val_y_der = "Indefinido" if t_der[i][1] is None else f"{t_der[i][1]:.4f}"
+                    self.tabla_limites.setItem(i, 3, QTableWidgetItem(val_y_der))
 
-        self.lienzo_grafico.vincular_modelo(modelo)
+            self.lienzo_grafico.vincular_modelo(modelo)
+            
+        except Exception as e:
+            self.lbl_validacion.setStyleSheet("color: #EF4444; font-weight: 700;")
+            self.lbl_validacion.setText(f"❌ Error al cargar los datos del problema: {str(e)}")
 
     def procesar_verificacion(self):
-        """Lógica de verificación desacoplada y limpia de tipos de datos nativos de Qt."""
+        """Lógica de verificación desacoplada y blindada contra ingresos maliciosos."""
         try:
             if not hasattr(self, 'modelo_actual') or self.modelo_actual is None:
                 self.lbl_validacion.setStyleSheet("color: #EF4444; font-weight: 700;")
                 self.lbl_validacion.setText("❌ Error: Modelo matemático no inicializado.")
                 return
 
-            # Captura de textos de la UI de forma segura
-            txt_izq = str(self.input_lim_izq.text()).strip().lower()
-            txt_der = str(self.input_lim_der.text()).strip().lower()
-            txt_fa = str(self.input_fa.text()).strip().lower()
+            # Captura y normalización de textos de la UI reemplazando comas por puntos decimales
+            txt_izq = str(self.input_lim_izq.text()).strip().lower().replace(",", ".")
+            txt_der = str(self.input_lim_der.text()).strip().lower().replace(",", ".")
+            txt_fa = str(self.input_fa.text()).strip().lower().replace(",", ".")
             
             txt_existe = str(self.combo_existe.currentText()).strip().lower()
             txt_cont = str(self.combo_continuidad.currentText()).strip().lower()
 
-            # Forzar validación de campos obligatorios
+            # Forzar validación de campos vacíos o sin selección
             if not txt_izq or not txt_der or not txt_fa or "[ seleccione" in txt_existe or "[ seleccione" in txt_cont:
                 self.lbl_validacion.setStyleSheet("color: #EA580C; font-weight: 700;")
                 self.lbl_validacion.setText("⚠️ Completa todas las opciones de la zona de evaluación.")
                 return
 
-            # Normalizador universal de Strings (compara exclusivamente textos)
+            # Normalizador universal de Strings (compara de forma segura textos e infinitos)
             def normalizar_valor(val):
                 s = str(val).strip().lower()
                 if s in ["inf", "infinity", "+inf", "infinito", "float('inf')"]: return "inf"
@@ -534,14 +570,17 @@ class VistaLimites(QWidget):
             user_der = normalizar_valor(txt_der)
             user_fa = normalizar_valor(txt_fa)
 
-            # Extraer respuestas de soporte de forma segura
-            sol_izq, sol_der, sol_existe, sol_fa, sol_caso_idx = self.modelo_actual.obtener_respuestas_correctas()
+            # Extracción segura de respuestas correctas desde el Backend
+            respuestas_correctas = self.modelo_actual.obtener_respuestas_correctas()
+            if not respuestas_correctas or len(respuestas_correctas) < 5:
+                raise ValueError("El modelo matemático devolvió un solucionario corrupto o incompleto.")
+
+            sol_izq, sol_der, sol_existe, sol_fa, sol_caso_idx = respuestas_correctas
             
             correct_izq = normalizar_valor(sol_izq)
             correct_der = normalizar_valor(sol_der)
             correct_fa = normalizar_valor(sol_fa)
             
-            # Evaluar textos de ComboBoxes de forma explícita
             correct_existe = "sí" if int(sol_existe) == 1 else "no"
             
             mapeo_casos = {
@@ -552,7 +591,7 @@ class VistaLimites(QWidget):
             }
             correct_cont = mapeo_casos.get(int(sol_caso_idx), "")
 
-            # Comparativa libre de punteros numéricos de C++
+            # Contenedor de inconsistencias encontradas
             errores = []
             if user_izq != correct_izq: errores.append("Límite Izquierdo")
             if user_der != correct_der: errores.append("Límite Derecho")
