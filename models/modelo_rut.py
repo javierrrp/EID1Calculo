@@ -1,3 +1,6 @@
+from logging import log
+
+
 def separar_rut(rut_texto: str) -> tuple[str, str]:
     rut = rut_texto.strip().replace(".", "").replace(" ", "").upper()
     if "-" not in rut:
@@ -362,7 +365,7 @@ def construir_forma_canonica(A: float, B: float, C: float, D: float, E: float) -
         r2 = lado_der / A if abs(A) > eps else 0
         r = r2 ** 0.5 if r2 > 0 else 0
         log.append(f"  (x - {_fmt(h)})² + (y - {_fmt(k)})² = {_fmt(r2)}")
-        log.append(f"  Centro: ({_fmt(h)}, {_fmt(k)})    Radio: r = √{_fmt(r2)} = {_fmt(r):.4f}")
+        log.append(f"  Centro: ({_fmt(h)}, {_fmt(k)})    Radio: r = √{_fmt(r2)} = {r:.4f}")
         forma_canonica = f"(x - {_fmt(h)})² + (y - {_fmt(k)})² = {_fmt(r2)}"
         return {"h": h, "k": k, "r2": r2, "r": r, "lado_der": lado_der,
                 "forma_canonica": forma_canonica, "log": "\n".join(log)}

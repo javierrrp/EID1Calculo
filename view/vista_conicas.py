@@ -159,13 +159,20 @@ class PlanoCartesiano(QWidget):
             QPushButton:pressed{ background-color: #1D4ED8; }
         """)
         lay.addWidget(self.btn_verificar)
+
+
  
         self.panel_inputs.adjustSize()
     
     
     def _hacer_campo(self, parent_lay, etiqueta: str, placeholder: str) -> QLineEdit:
-        fila = QHBoxLayout()
+        
+        fila_widget = QWidget()
+        fila_widget.setStyleSheet("background: transparent; border: none;")
+        fila = QHBoxLayout(fila_widget)
+        fila.setContentsMargins(0, 0, 0, 0)
         fila.setSpacing(6)
+
         lbl = QLabel(etiqueta)
         lbl.setFixedWidth(120)
         lbl.setStyleSheet("font-size: 11px; font-weight: 600; color: #334155; "
@@ -189,9 +196,38 @@ class PlanoCartesiano(QWidget):
                             """)
         fila.addWidget(lbl)
         fila.addWidget(campo)
-        parent_lay.addLayout(fila)
+        parent_lay.addWidget(fila_widget)
+
+        campo._fila_widget = fila_widget
         return campo
     
+    def mostrar_campos_segun_conica(self, tipo: str):
+        
+        tipo_lower = tipo.lower()
+
+        if "circunferencia" in tipo_lower:
+            visibles = {"centro", "radio"}
+        elif "elipse" in tipo_lower:
+            visibles = {"centro", "focos"}
+        elif "hipérbola" in tipo_lower or "hiperbola" in tipo_lower:
+            visibles = {"centro", "focos"}
+        elif "parábola" in tipo_lower or "parabola" in tipo_lower:
+            visibles = {"focos"}
+        else:
+            visibles = {"centro", "radio", "focos"}
+        
+        campos = {
+            "centro": self.input_centro,
+            "radio":  self.input_radio,
+            "focos":  self.input_focos,
+        }
+
+        for nombre, campo in campos.items():
+            campo._fila_widget.setVisible(nombre in visibles)
+
+        self.panel_inputs.adjustSize()
+        self._reposicionar_panel()
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self._reposicionar_panel()
@@ -332,4 +368,4 @@ class PlanoCartesiano(QWidget):
             painter.setPen(Qt.GlobalColor.transparent)
             painter.drawEllipse(int(px) - 4, int(py) - 4, 8, 8)
 
-            
+    
