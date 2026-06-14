@@ -87,13 +87,15 @@ class VistaRut(QWidget):
         self._tabs_content = {}
 
         tabs_info = [
-            ("validacion", "① Módulo 11"),
-            ("variable_v", "② Variable v"),
-            ("ecuacion",   "③ Ecuación"),
-            ("canonica",   "④ Canónica"),
-            ("inverso",    "⑤ Inverso"),
-            ("resultado",  "⑥ Resultado"),
+            ("validacion",    "① Módulo 11"),
+            ("variable_v",    "② Variable v"),
+            ("ecuacion",      "③ Ecuación"),
+            ("clasificacion", "④ Clasificación"),
+            ("canonica",      "⑤ Canónica"),
+            ("inverso",       "⑥ Inverso"),
+            ("resultado",     "⑦ Resultado"),
         ]
+
 
         for key, label in tabs_info:
             btn = QPushButton(label)
@@ -127,12 +129,13 @@ class VistaRut(QWidget):
 
         # ── Subtítulo ──────────────────────────────────────────
         self._subtitulos = {
-            "validacion": "Procedimiento de validación del RUT — Algoritmo Módulo 11",
-            "variable_v": "Cálculo de la variable auxiliar v a partir del dígito verificador",
-            "ecuacion":   "Construcción paso a paso de los coeficientes A, B, C, D, E y ajustes de cónicas",
-            "canonica":   "Transformación de la ecuación general a la forma canónica (completar cuadrado)",
-            "inverso":    "Procedimiento inverso: desde la forma canónica se recupera la ecuación general",
-            "resultado":  "Clasificación final de la cónica y ecuación resultante",
+            "validacion":    "Procedimiento de validación del RUT — Algoritmo Módulo 11",
+            "variable_v":    "Cálculo de la variable auxiliar v a partir del dígito verificador",
+            "ecuacion":      "Construcción paso a paso de los coeficientes A, B, C, D, E y ajustes de cónicas",
+            "clasificacion": "Clasificación de la cónica según los criterios de A y B",
+            "canonica":      "Transformación de la ecuación general a la forma canónica (completar cuadrado)",
+            "inverso":       "Procedimiento inverso: desde la forma canónica se recupera la ecuación general",
+            "resultado":     "Clasificación final de la cónica y ecuación resultante",
         }
 
         self.lbl_subtitulo = QLabel("")
@@ -155,7 +158,7 @@ class VistaRut(QWidget):
         self._stack_layout.setContentsMargins(0, 0, 0, 0)
         self._stack_layout.setSpacing(0)
 
-        for key in ["validacion", "variable_v", "ecuacion", "canonica", "inverso"]:
+        for key in ["validacion", "variable_v", "ecuacion", "clasificacion", "canonica", "inverso"]:
             scroll = self._hacer_scroll_consola("Esperando datos de entrada...")
             self._stack_layout.addWidget(scroll)
             self._tabs_content[key] = scroll
@@ -402,7 +405,9 @@ class VistaRut(QWidget):
         self.lbl_tipo_conica.setText(tipo)
         self.lbl_ecuacion.setText(ecuacion_str)
         self.lbl_explicacion.setText(explicacion)
-
+        
+    def mostrar_clasificacion(self, log_clas: str):
+        self._tabs_content["clasificacion"]._label_contenido.setText(log_clas)
     # ───────────────────────── helpers ────────────────────────
     def _emitir_validar(self):
         self.boton_validar_clicado.emit(self.input_rut.text())

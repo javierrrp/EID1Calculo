@@ -240,33 +240,67 @@ def construir_ecuacion(digitos: list[int], v: int) -> dict:
     }
 
 
-def clasificar_conica(A: float, B: float) -> tuple[str, str]:
+def clasificar_conica(A: float, B: float) -> tuple[str, str, str]:
     eps = 1e-9
     az = abs(A) < eps
     bz = abs(B) < eps
+
+    log = ["── Clasificación de la Cónica ──", ""]
+    log.append(f"Coeficientes obtenidos:")
+    log.append(f"  A = {_fmt(A)}")
+    log.append(f"  B = {_fmt(B)}")
+    log.append("")
+    log.append("Criterios de clasificación:")
+    log.append("  • Si A = B ≠ 0            →  Circunferencia")
+    log.append("  • Si A y B mismo signo, A ≠ B  →  Elipse")
+    log.append("  • Si A y B signos opuestos →  Hipérbola")
+    log.append("  • Si exactamente A=0 o B=0 →  Parábola")
+    log.append("")
+
     if az and bz:
-        return "Degenerada", "A = 0 y B = 0. No representa una cónica estándar."
+        log.append("A = 0 y B = 0  →  caso degenerado, no es una cónica estándar.")
+        texto = "A = 0 y B = 0. No representa una cónica estándar."
+        return "Degenerada", texto, "\n".join(log)
+
     if az or bz:
         cual = "A" if az else "B"
-        return "Parábola", (
+        log.append(f"  {cual} = 0  →  exactamente un coeficiente es cero")
+        log.append(f"  Se cumple el criterio de PARÁBOLA.")
+        log.append(f"  A = {_fmt(A)},  B = {_fmt(B)}")
+        texto = (
             f"Exactamente uno de los coeficientes es cero ({cual} = 0)  →  Parábola.\n"
             f"  • A = {_fmt(A)}, B = {_fmt(B)}"
         )
+        return "Parábola", texto, "\n".join(log)
+
     if abs(A - B) < eps:
-        return "Circunferencia", (
+        log.append(f"  A = B = {_fmt(A)}  y  ambos son distintos de cero")
+        log.append(f"  Se cumple el criterio de CIRCUNFERENCIA.")
+        log.append(f"  Cuando los coeficientes de x² e y² son iguales,")
+        log.append(f"  la figura resultante es un círculo.")
+        texto = (
             f"A = B = {_fmt(A)} y ambos son distintos de cero  →  Circunferencia.\n"
             f"  • Cuando los coeficientes de x² e y² son iguales, la figura es un círculo."
         )
+        return "Circunferencia", texto, "\n".join(log)
+
     if (A > 0) == (B > 0):
-        return "Elipse", (
+        log.append(f"  A = {_fmt(A)}  y  B = {_fmt(B)}  tienen el MISMO SIGNO")
+        log.append(f"  Además A ≠ B")
+        log.append(f"  Se cumple el criterio de ELIPSE.")
+        texto = (
             f"A = {_fmt(A)} y B = {_fmt(B)} tienen el mismo signo, pero A ≠ B  →  Elipse.\n"
             f"  • Coeficientes positivos distintos producen una elipse."
         )
-    return "Hipérbola", (
+        return "Elipse", texto, "\n".join(log)
+
+    log.append(f"  A = {_fmt(A)}  y  B = {_fmt(B)}  tienen SIGNOS OPUESTOS")
+    log.append(f"  Se cumple el criterio de HIPÉRBOLA.")
+    texto = (
         f"A = {_fmt(A)} y B = {_fmt(B)} tienen signos opuestos  →  Hipérbola.\n"
         f"  • Coeficientes de signos contrarios producen una hipérbola."
     )
-
+    return "Hipérbola", texto, "\n".join(log)
 
 def construir_forma_canonica(A: float, B: float, C: float, D: float, E: float) -> dict:
     """
@@ -322,7 +356,7 @@ def construir_forma_canonica(A: float, B: float, C: float, D: float, E: float) -
     log.append("Paso 4: Forma canónica resultante")
     log.append("")
 
-    tipo, _ = clasificar_conica(A, B)
+    tipo, _, _ = clasificar_conica(A, B)
 
     if tipo == "Circunferencia":
         r2 = lado_der / A if abs(A) > eps else 0

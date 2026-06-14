@@ -52,7 +52,8 @@ class ControladorRut:
         self.vista.mostrar_ecuacion(datos_ec["log"])
 
         # ── Paso 4: Clasificar cónica ────────────────────────────
-        tipo, explicacion = clasificar_conica(datos_ec["A"], datos_ec["B"])
+        tipo, explicacion, log_clasificacion = clasificar_conica(datos_ec["A"], datos_ec["B"])
+        self.vista.mostrar_clasificacion(log_clasificacion)
         self.vista.mostrar_conica(tipo, datos_ec["ecuacion_str"], explicacion)
 
         # ── Paso 5: Forma canónica ───────────────────────────────
