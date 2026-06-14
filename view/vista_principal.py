@@ -59,7 +59,8 @@ class VistaPrincipal(QMainWindow):
         self.clr_rut = "#4ECDC4"   # Turquesa
         self.clr_con = "#FF6B6B"   # Coral
         self.clr_lim = "#FFD93D"   # Amarillo
-        
+        self._modulos_habilitados = False
+
         self.init_ui()
 
     def init_ui(self):
@@ -105,7 +106,6 @@ class VistaPrincipal(QMainWindow):
         
         self.botones = [self.btn_rut, self.btn_conicas, self.btn_limites]
         for btn in self.botones:
-            # Vincula el clic del botón con el método de navegación
             btn.clicked.connect(lambda checked, b=btn: self.cambiar_pestana(b.index))
             sidebar_layout.addWidget(btn)
 
@@ -161,29 +161,36 @@ class VistaPrincipal(QMainWindow):
         self.cambiar_pestana(0)
 
     def cambiar_pestana(self, index):
-        """
-        SOLUCIÓN AL CRASH: Método mediador requerido explícitamente por el controlador.
-        Gestiona el cambio de índices en el QStackedWidget y actualiza la UI.
-        """
-        # Validar rango para evitar fallos de índice si una vista no se ha inyectado aún
         if index < 0 or index >= len(self.botones):
             return
 
-        # Sincronizar estados visuales de los botones laterales
+        if index in (1, 2) and not self._modulos_habilitados:
+            # Resetear visual del botón que se intentó apretar
+            self.botones[index].setChecked(False)
+
+            from PyQt6.QtWidgets import QMessageBox
+            msg = QMessageBox(self)
+            msg.setWindowTitle("Acceso bloqueado")
+            msg.setText("⚠️  Primero debes validar un RUT.")
+            msg.setInformativeText(
+                "Ingresa un RUT válido en el módulo de Validación "
+                "antes de acceder a Cónicas o Límites."
+            )
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.exec()
+            return
+
         for i, btn in enumerate(self.botones):
             btn.setChecked(i == index)
-        
+
         titulos = ["Validación de Identidad", "Geometría de Cónicas", "Cálculo de Límites"]
         colores = [self.clr_rut, self.clr_con, self.clr_lim]
-        
-        # Actualizar dinámicamente el estilo y texto de la cabecera superior
+
         self.lbl_seccion.setText(titulos[index].upper())
-        self.lbl_seccion.setStyleSheet(f"color: {colores[index]}; font-size: 22px; font-weight: 800; margin-left: 20px;")
-        
-        # Conmutar la pantalla activa en el Stacked Widget
+        self.lbl_seccion.setStyleSheet(
+            f"color: {colores[index]}; font-size: 22px; font-weight: 800; margin-left: 20px;"
+        )
         self.stacked_widget.setCurrentIndex(index)
-        
-        # Notificar al controlador principal en caso de que requiera refrescar datos del modelo
         self.cambiar_vista_solicitada.emit(index)
 
     def navegar(self, index):
@@ -194,3 +201,6 @@ class VistaPrincipal(QMainWindow):
         """Inyecta los sub-widgets (RUT, Cónicas, Límites) enviados desde el Main/Controlador"""
         widget_vista.setStyleSheet("background: transparent;")
         self.stacked_widget.addWidget(widget_vista)
+
+    def habilitar_modulos(self, habilitar: bool):
+        self._modulos_habilitados = habilitar
