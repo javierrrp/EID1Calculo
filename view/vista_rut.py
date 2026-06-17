@@ -7,6 +7,31 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor
 
 
+# ─────────────────────────────────────────────────────────────
+#  Paleta (tema claro, consistente con vista_principal.py)
+# ─────────────────────────────────────────────────────────────
+BG        = "#F8F7F4"
+SURFACE   = "#FFFFFF"
+SURFACE2  = "#F1EFE8"
+BORDER    = "#C8C6BE"
+BORDER_STR= "#B0AEA8"
+
+TEXT_PRI  = "#1A1917"
+TEXT_SEC  = "#5F5E5A"
+TEXT_MUT  = "#9B9A95"
+
+RUT       = "#185FA5"
+RUT_LIGHT = "#E6F1FB"
+RUT_MID   = "#378ADD"
+
+OK        = "#3B6D11"
+OK_LIGHT  = "#EAF3DE"
+
+ERR       = "#993C1D"
+ERR_LIGHT = "#FAECE7"
+ERR_MID   = "#D85A30"
+
+
 class VistaRut(QWidget):
     boton_validar_clicado = pyqtSignal(str)
 
@@ -16,72 +41,99 @@ class VistaRut(QWidget):
 
     def init_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(28, 24, 28, 24)
-        layout.setSpacing(16)
+        layout.setContentsMargins(20, 18, 20, 18)
+        layout.setSpacing(14)
 
-        # ── Tarjeta de entrada ─────────────────────────────────
+        # ── Tarjeta de entrada ────────────────────────────────
         card = QFrame()
-        card.setStyleSheet(
-            "QFrame { background-color: white; border-radius: 26px; padding: 18px; }"
-        )
+        card.setStyleSheet(f"""
+            QFrame {{
+                background-color: {SURFACE};
+                border: 0.5px solid {BORDER};
+                border-radius: 14px;
+            }}
+        """)
         self._apply_shadow(card)
         card_layout = QVBoxLayout(card)
-        card_layout.setSpacing(12)
+        card_layout.setSpacing(10)
+        card_layout.setContentsMargins(16, 14, 16, 14)
 
-        instruccion = QLabel("INGRESA TU RUT")
+        # Etiqueta de campo
+        instruccion = QLabel("INGRESA EL RUT")
         instruccion.setStyleSheet(
-            "color: #64748B; font-weight: 800; font-size: 14px; letter-spacing: 1px;"
+            f"color: {TEXT_MUT}; font-weight: 500; font-size: 10px;"
+            f" letter-spacing: 1px; border: none; background: transparent;"
         )
-        card_layout.addWidget(instruccion, alignment=Qt.AlignmentFlag.AlignCenter)
+        card_layout.addWidget(instruccion)
 
+        # Input principal
         self.input_rut = QLineEdit()
         self.input_rut.setPlaceholderText("12.345.678-K")
-        self.input_rut.setMinimumHeight(72)
-        self.input_rut.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.input_rut.setStyleSheet("""
-            QLineEdit {
-                border: 3px solid #F1F5F9;
-                border-radius: 20px;
-                font-size: 30px;
-                font-weight: 900;
-                color: #1E293B;
-                background-color: #F8FAFC;
-                padding: 8px 12px;
-            }
-            QLineEdit:focus {
-                border: 3px solid #4ECDC4;
-                background-color: white;
-            }
+        self.input_rut.setMinimumHeight(52)
+        self.input_rut.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.input_rut.setStyleSheet(f"""
+            QLineEdit {{
+                border: 0.5px solid {BORDER};
+                border-radius: 8px;
+                font-size: 22px;
+                font-weight: 500;
+                color: {TEXT_PRI};
+                background-color: {SURFACE};
+                padding: 8px 14px;
+                letter-spacing: 2px;
+                font-family: Consolas, "Courier New", monospace;
+            }}
+            QLineEdit:focus {{
+                border: 1.5px solid {RUT_MID};
+                background-color: {SURFACE};
+            }}
         """)
         self.input_rut.returnPressed.connect(self._emitir_validar)
         self.input_rut.textChanged.connect(self._formatear_rut_en_vivo)
         card_layout.addWidget(self.input_rut)
 
-        self.btn_validar = QPushButton("VERIFICAR RUT")
-        self.btn_validar.setMinimumHeight(54)
+        # Fila botón + hint
+        row_btn = QHBoxLayout()
+        row_btn.setSpacing(10)
+
+        self.btn_validar = QPushButton("Verificar RUT")
+        self.btn_validar.setMinimumHeight(42)
         self.btn_validar.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_validar.setStyleSheet("""
-            QPushButton {
-                background-color: #4ECDC4;
+        self.btn_validar.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {RUT};
                 color: white;
-                border-radius: 18px;
-                font-size: 15px;
-                font-weight: bold;
-                padding: 8px 16px;
-            }
-            QPushButton:hover { background-color: #45B7AF; }
-            QPushButton:pressed { background-color: #3AA8A0; }
+                border-radius: 8px;
+                font-size: 13px;
+                font-weight: 500;
+                padding: 8px 18px;
+                border: none;
+            }}
+            QPushButton:hover {{
+                background-color: {RUT_MID};
+            }}
+            QPushButton:pressed {{
+                background-color: #124a84;
+            }}
         """)
         self.btn_validar.clicked.connect(self._emitir_validar)
-        card_layout.addWidget(self.btn_validar)
+        row_btn.addWidget(self.btn_validar)
 
+        hint = QLabel("↩  o presiona Enter")
+        hint.setStyleSheet(
+            f"color: {TEXT_MUT}; font-size: 11px; border: none; background: transparent;"
+        )
+        row_btn.addWidget(hint)
+        row_btn.addStretch()
+        card_layout.addLayout(row_btn)
         layout.addWidget(card)
 
-        # ── Botones de pestañas ────────────────────────────────
+        # ── Pestañas ──────────────────────────────────────────
         tabs_container = QWidget()
+        tabs_container.setStyleSheet("background: transparent;")
         tabs_layout = QHBoxLayout(tabs_container)
         tabs_layout.setContentsMargins(0, 0, 0, 0)
-        tabs_layout.setSpacing(8)
+        tabs_layout.setSpacing(4)
 
         self._tabs_btns = {}
         self._tabs_content = {}
@@ -96,38 +148,20 @@ class VistaRut(QWidget):
             ("resultado",     "⑦ Resultado"),
         ]
 
-
         for key, label in tabs_info:
             btn = QPushButton(label)
             btn.setCheckable(True)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setMinimumHeight(38)
-            btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #F1F5F9;
-                    color: #334155;
-                    border-radius: 12px;
-                    font-size: 12px;
-                    font-weight: bold;
-                    padding: 8px 14px;
-                    border: none;
-                }
-                QPushButton:checked {
-                    background-color: #4ECDC4;
-                    color: white;
-                }
-                QPushButton:hover:!checked {
-                    background-color: #E2E8F0;
-                }
-            """)
-            btn.clicked.connect(lambda _, k=key: self._mostrar_tab(k))
+            btn.setMinimumHeight(34)
+            btn.setStyleSheet(self._estilo_tab(False))
+            btn.clicked.connect(lambda checked, k=key: self._mostrar_tab(k))
             tabs_layout.addWidget(btn)
             self._tabs_btns[key] = btn
 
         tabs_layout.addStretch()
         layout.addWidget(tabs_container)
 
-        # ── Subtítulo ──────────────────────────────────────────
+        # ── Subtítulo ─────────────────────────────────────────
         self._subtitulos = {
             "validacion":    "Procedimiento de validación del RUT — Algoritmo Módulo 11",
             "variable_v":    "Cálculo de la variable auxiliar v a partir del dígito verificador",
@@ -140,19 +174,20 @@ class VistaRut(QWidget):
 
         self.lbl_subtitulo = QLabel("")
         self.lbl_subtitulo.setWordWrap(True)
-        self.lbl_subtitulo.setStyleSheet("""
-            color: #64748B;
+        self.lbl_subtitulo.setStyleSheet(f"""
+            color: {TEXT_SEC};
             font-size: 11px;
             font-style: italic;
-            padding: 4px 6px;
-            background: #F8FAFC;
-            border: 1px solid #E2E8F0;
-            border-radius: 8px;
+            padding: 5px 10px;
+            background: {SURFACE2};
+            border: 0.5px solid {BORDER};
+            border-radius: 0px 6px 6px 6px;
         """)
         layout.addWidget(self.lbl_subtitulo)
 
-        # ── Stack principal ────────────────────────────────────
+        # ── Stack de contenido ────────────────────────────────
         self._stack = QFrame()
+        self._stack.setStyleSheet("background: transparent; border: none;")
         self._stack.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self._stack_layout = QVBoxLayout(self._stack)
         self._stack_layout.setContentsMargins(0, 0, 0, 0)
@@ -168,10 +203,9 @@ class VistaRut(QWidget):
         self._tabs_content["resultado"] = resultado_scroll
 
         layout.addWidget(self._stack, 1)
-
         self._mostrar_tab("validacion")
 
-    # ───────────────────────── constructores ──────────────────
+    # ── constructores internos ─────────────────────────────────
     def _hacer_scroll_consola(self, texto_inicial: str) -> QScrollArea:
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -179,32 +213,30 @@ class VistaRut(QWidget):
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        scroll.setStyleSheet("""
-            QScrollArea {
-                border: none;
-                border-radius: 18px;
-                background: transparent;
-            }
-            QScrollBar:vertical {
+        scroll.setStyleSheet(f"""
+            QScrollArea {{
+                border: 0.5px solid {BORDER};
+                border-radius: 8px;
+                background: {BG};
+            }}
+            QScrollBar:vertical {{
                 width: 8px;
-                background: #E2E8F0;
+                background: {SURFACE2};
                 border-radius: 4px;
-                margin: 6px 0 6px 0;
-            }
-            QScrollBar::handle:vertical {
-                background: #94A3B8;
+                margin: 4px 0;
+            }}
+            QScrollBar::handle:vertical {{
+                background: {BORDER};
                 border-radius: 4px;
-                min-height: 28px;
-            }
+                min-height: 24px;
+            }}
             QScrollBar::add-line:vertical,
-            QScrollBar::sub-line:vertical {
-                height: 0px;
-            }
+            QScrollBar::sub-line:vertical {{ height: 0px; }}
         """)
 
         contenedor = QWidget()
         contenedor.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
-        contenedor.setStyleSheet("background: transparent;")
+        contenedor.setStyleSheet(f"background: {BG};")
 
         inner_layout = QVBoxLayout(contenedor)
         inner_layout.setContentsMargins(0, 0, 0, 0)
@@ -216,7 +248,7 @@ class VistaRut(QWidget):
         lbl.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         lbl.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
         lbl.setMinimumWidth(0)
-        lbl.setStyleSheet(self._estilo_consola("#4ECDC4", "#A5F3FC"))
+        lbl.setStyleSheet(self._estilo_consola(RUT_MID))
 
         inner_layout.addWidget(lbl)
         scroll.setWidget(contenedor)
@@ -230,158 +262,155 @@ class VistaRut(QWidget):
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        scroll.setStyleSheet("""
-            QScrollArea {
-                border: none;
-                background: transparent;
-            }
-            QScrollBar:vertical {
+        scroll.setStyleSheet(f"""
+            QScrollArea {{
+                border: 0.5px solid {BORDER};
+                border-radius: 10px;
+                background: {SURFACE};
+            }}
+            QScrollBar:vertical {{
                 width: 8px;
-                background: #E2E8F0;
+                background: {SURFACE2};
                 border-radius: 4px;
-                margin: 6px 0 6px 0;
-            }
-            QScrollBar::handle:vertical {
-                background: #94A3B8;
+                margin: 4px 0;
+            }}
+            QScrollBar::handle:vertical {{
+                background: {BORDER};
                 border-radius: 4px;
-                min-height: 28px;
-            }
+                min-height: 24px;
+            }}
             QScrollBar::add-line:vertical,
-            QScrollBar::sub-line:vertical {
-                height: 0px;
-            }
+            QScrollBar::sub-line:vertical {{ height: 0px; }}
         """)
 
         inner = QWidget()
-        inner.setStyleSheet("background: transparent;")
+        inner.setStyleSheet(f"background: {SURFACE};")
         inner.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
 
         lay = QVBoxLayout(inner)
-        lay.setContentsMargins(4, 4, 4, 16)
-        lay.setSpacing(12)
+        lay.setContentsMargins(14, 14, 14, 18)
+        lay.setSpacing(10)
 
-        card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: white;
-                border-radius: 20px;
-                padding: 8px;
-            }
-        """)
-        self._apply_shadow(card)
+        # ── Fila Estado + Cónica ──────────────────────────────
+        row_top = QHBoxLayout()
+        row_top.setSpacing(16)
 
-        card_lay = QVBoxLayout(card)
-        card_lay.setSpacing(10)
-        card_lay.setContentsMargins(20, 16, 20, 16)
-
-        lbl_sec1 = QLabel("Estado del RUT")
+        col_estado = QVBoxLayout()
+        col_estado.setSpacing(4)
+        lbl_sec1 = QLabel("ESTADO")
         lbl_sec1.setStyleSheet(
-            "font-size: 11px; font-weight: bold; color: #94A3B8; letter-spacing: 1px;"
+            f"font-size: 10px; font-weight: 500; color: {TEXT_MUT};"
+            f" letter-spacing: 1px; border: none; background: transparent;"
         )
-        card_lay.addWidget(lbl_sec1)
-
+        col_estado.addWidget(lbl_sec1)
         self.lbl_estado = QLabel("—")
         self.lbl_estado.setWordWrap(True)
         self.lbl_estado.setStyleSheet(
-            "font-size: 18px; font-weight: bold; color: #94A3B8;"
+            f"font-size: 18px; font-weight: 500; color: {TEXT_MUT};"
+            f" border: none; background: transparent;"
         )
-        card_lay.addWidget(self.lbl_estado)
+        col_estado.addWidget(self.lbl_estado)
+        row_top.addLayout(col_estado)
 
-        sep1 = QFrame()
-        sep1.setFrameShape(QFrame.Shape.HLine)
-        sep1.setStyleSheet("background-color: #E2E8F0; min-height: 1px; margin: 4px 0;")
-        card_lay.addWidget(sep1)
-
-        lbl_sec2 = QLabel("Tipo de Cónica")
+        col_conica = QVBoxLayout()
+        col_conica.setSpacing(4)
+        lbl_sec2 = QLabel("TIPO DE CÓNICA ASIGNADA")
         lbl_sec2.setStyleSheet(
-            "font-size: 11px; font-weight: bold; color: #94A3B8; letter-spacing: 1px;"
+            f"font-size: 10px; font-weight: 500; color: {TEXT_MUT};"
+            f" letter-spacing: 1px; border: none; background: transparent;"
         )
-        card_lay.addWidget(lbl_sec2)
-
+        col_conica.addWidget(lbl_sec2)
         self.lbl_tipo_conica = QLabel("—")
         self.lbl_tipo_conica.setWordWrap(True)
         self.lbl_tipo_conica.setStyleSheet(
-            "font-size: 28px; font-weight: 900; color: #4ECDC4;"
+            f"font-size: 24px; font-weight: 500; color: {RUT};"
+            f" border: none; background: transparent;"
         )
-        card_lay.addWidget(self.lbl_tipo_conica)
+        col_conica.addWidget(self.lbl_tipo_conica)
+        row_top.addLayout(col_conica)
 
+        lay.addLayout(row_top)
+
+        # Separador
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setStyleSheet(f"color: {BORDER}; background: {BORDER}; border: none; max-height: 1px;")
+        lay.addWidget(sep)
+
+        # ── Explicación ───────────────────────────────────────
         self.lbl_explicacion = QLabel("—")
         self.lbl_explicacion.setWordWrap(True)
-        self.lbl_explicacion.setStyleSheet("""
-            font-size: 13px;
-            color: #475569;
-            line-height: 1.45;
-            padding-bottom: 4px;
-        """)
-        card_lay.addWidget(self.lbl_explicacion)
-
-        sep2 = QFrame()
-        sep2.setFrameShape(QFrame.Shape.HLine)
-        sep2.setStyleSheet("background-color: #E2E8F0; min-height: 1px; margin: 4px 0;")
-        card_lay.addWidget(sep2)
-
-        lbl_sec3 = QLabel("Ecuación General")
-        lbl_sec3.setStyleSheet(
-            "font-size: 11px; font-weight: bold; color: #94A3B8; letter-spacing: 1px;"
+        self.lbl_explicacion.setStyleSheet(
+            f"font-size: 12px; color: {TEXT_SEC}; line-height: 1.45;"
+            f" border: none; background: transparent;"
         )
-        card_lay.addWidget(lbl_sec3)
+        lay.addWidget(self.lbl_explicacion)
+
+        # ── Ecuación general ──────────────────────────────────
+        lbl_sec3 = QLabel("ECUACIÓN GENERAL")
+        lbl_sec3.setStyleSheet(
+            f"font-size: 10px; font-weight: 500; color: {TEXT_MUT};"
+            f" letter-spacing: 1px; border: none; background: transparent;"
+        )
+        lay.addWidget(lbl_sec3)
 
         self.lbl_ecuacion = QLabel("—")
         self.lbl_ecuacion.setWordWrap(True)
         self.lbl_ecuacion.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        self.lbl_ecuacion.setStyleSheet("""
-            font-family: Consolas, 'Courier New';
-            font-size: 14px;
-            font-weight: bold;
-            color: #1E293B;
-            background: #F8FAFC;
-            border-radius: 10px;
-            padding: 12px;
-            border: 1px solid #E2E8F0;
+        self.lbl_ecuacion.setStyleSheet(f"""
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 13px;
+            font-weight: 500;
+            color: {ERR};
+            background: {BG};
+            border-radius: 8px;
+            padding: 10px 14px;
+            border-left: 3px solid {ERR_MID};
+            border-top: 0.5px solid {BORDER};
+            border-right: 0.5px solid {BORDER};
+            border-bottom: 0.5px solid {BORDER};
         """)
-        card_lay.addWidget(self.lbl_ecuacion)
+        lay.addWidget(self.lbl_ecuacion)
 
-        sep3 = QFrame()
-        sep3.setFrameShape(QFrame.Shape.HLine)
-        sep3.setStyleSheet("background-color: #E2E8F0; min-height: 1px; margin: 4px 0;")
-        card_lay.addWidget(sep3)
-
+        # ── Hint de navegación ────────────────────────────────
         lbl_nav = QLabel(
             "Para ver el desarrollo completo, usa las pestañas numeradas ① ② ③ ④ ⑤"
         )
         lbl_nav.setWordWrap(True)
-        lbl_nav.setStyleSheet("""
+        lbl_nav.setStyleSheet(f"""
             font-size: 11px;
-            color: #64748B;
+            color: {OK};
             font-style: italic;
-            background: #F0FDF4;
-            border-radius: 8px;
-            padding: 10px;
-            border: 1px solid #D1FAE5;
+            background: {OK_LIGHT};
+            border-radius: 7px;
+            padding: 8px 10px;
+            border: 0.5px solid #C8DFB8;
         """)
-        card_lay.addWidget(lbl_nav)
+        lay.addWidget(lbl_nav)
 
-        lay.addWidget(card)
         scroll.setWidget(inner)
         return scroll
 
-    # ───────────────────────── slots públicos ─────────────────
+    # ── slots públicos (compatibles con el controlador) ────────
     def mostrar_resultado(self, exito: bool, log_validacion: str):
         lbl = self._tabs_content["validacion"]._label_contenido
-        color_borde = "#4ECDC4" if exito else "#FF6B6B"
-        color_texto = "#A5F3FC" if exito else "#FECACA"
-        lbl.setStyleSheet(self._estilo_consola(color_borde, color_texto))
+        if exito:
+            lbl.setStyleSheet(self._estilo_consola(RUT_MID))
+        else:
+            lbl.setStyleSheet(self._estilo_consola(ERR_MID))
         lbl.setText(log_validacion)
 
         if exito:
             self.lbl_estado.setText("✓  RUT VÁLIDO")
             self.lbl_estado.setStyleSheet(
-                "font-size: 18px; font-weight: bold; color: #22C55E;"
+                f"font-size: 18px; font-weight: 500; color: {OK};"
+                f" border: none; background: transparent;"
             )
         else:
             self.lbl_estado.setText("✗  RUT INVÁLIDO")
             self.lbl_estado.setStyleSheet(
-                "font-size: 18px; font-weight: bold; color: #EF4444;"
+                f"font-size: 18px; font-weight: 500; color: {ERR};"
+                f" border: none; background: transparent;"
             )
             self.lbl_tipo_conica.setText("—")
             self.lbl_ecuacion.setText("—")
@@ -405,10 +434,11 @@ class VistaRut(QWidget):
         self.lbl_tipo_conica.setText(tipo)
         self.lbl_ecuacion.setText(ecuacion_str)
         self.lbl_explicacion.setText(explicacion)
-        
+
     def mostrar_clasificacion(self, log_clas: str):
         self._tabs_content["clasificacion"]._label_contenido.setText(log_clas)
-    # ───────────────────────── helpers ────────────────────────
+
+    # ── helpers ────────────────────────────────────────────────
     def _emitir_validar(self):
         self.boton_validar_clicado.emit(self.input_rut.text())
 
@@ -439,23 +469,60 @@ class VistaRut(QWidget):
         for k, widget in self._tabs_content.items():
             widget.setVisible(False)
             self._tabs_btns[k].setChecked(False)
+            self._tabs_btns[k].setStyleSheet(self._estilo_tab(False))
 
         self._tabs_content[key].setVisible(True)
         self._tabs_btns[key].setChecked(True)
+        self._tabs_btns[key].setStyleSheet(self._estilo_tab(True))
         self.lbl_subtitulo.setText(self._subtitulos.get(key, ""))
 
     def _apply_shadow(self, widget):
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(30)
-        shadow.setColor(QColor(0, 0, 0, 20))
-        shadow.setOffset(0, 10)
+        shadow.setBlurRadius(22)
+        shadow.setColor(QColor(0, 0, 0, 18))
+        shadow.setOffset(0, 6)
         widget.setGraphicsEffect(shadow)
 
-    def _estilo_consola(self, borde: str, texto: str) -> str:
+    def _estilo_tab(self, activo: bool) -> str:
+        if activo:
+            return f"""
+                QPushButton {{
+                    background-color: {SURFACE};
+                    color: {TEXT_PRI};
+                    border-radius: 8px 8px 0px 0px;
+                    font-size: 11px;
+                    font-weight: 500;
+                    padding: 6px 12px;
+                    border: 0.5px solid {BORDER_STR};
+                    border-bottom: none;
+                }}
+            """
+        else:
+            return f"""
+                QPushButton {{
+                    background-color: {SURFACE2};
+                    color: {TEXT_SEC};
+                    border-radius: 8px 8px 0px 0px;
+                    font-size: 11px;
+                    font-weight: 500;
+                    padding: 6px 12px;
+                    border: 0.5px solid {BORDER};
+                    border-bottom: none;
+                }}
+                QPushButton:hover {{
+                    background-color: #E8E6DF;
+                    color: {TEXT_PRI};
+                }}
+            """
+
+    def _estilo_consola(self, color_borde: str) -> str:
         return (
-            f"background-color: #0F172A; color: {texto}; "
-            f"font-family: Consolas, 'Courier New'; "
-            f"font-size: 13px; line-height: 1.45; "
-            f"padding: 22px; border-radius: 20px; "
-            f"border-left: 5px solid {borde};"
+            f"background-color: {BG}; "
+            f"color: {TEXT_SEC}; "
+            f"font-family: Consolas, 'Courier New', monospace; "
+            f"font-size: 12px; "
+            f"line-height: 1.7; "
+            f"padding: 14px 16px; "
+            f"border-radius: 8px; "
+            f"border-left: 3px solid {color_borde};"
         )

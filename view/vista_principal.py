@@ -1,174 +1,285 @@
 import sys
-from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-                             QLabel, QPushButton, QStackedWidget, QFrame, 
-                             QGraphicsDropShadowEffect)
+from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+                             QLabel, QPushButton, QStackedWidget, QFrame,
+                             QGraphicsDropShadowEffect, QMessageBox)
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QColor, QFont
 
-class AnimatedNavButton(QPushButton):
-    def __init__(self, text, index, color_hex):
+
+# ─────────────────────────────────────────────────────────────
+#  Paleta (extraída del HTML de referencia)
+# ─────────────────────────────────────────────────────────────
+BG        = "#F8F7F4"
+SURFACE   = "#FFFFFF"
+SURFACE2  = "#F1EFE8"
+BORDER    = "rgba(0,0,0,0.10)"
+TEXT_PRI  = "#1A1917"
+TEXT_SEC  = "#5F5E5A"
+TEXT_MUT  = "#9B9A95"
+
+RUT       = "#185FA5"
+RUT_LIGHT = "#E6F1FB"
+RUT_MID   = "#378ADD"
+
+CON       = "#993C1D"
+CON_LIGHT = "#FAECE7"
+CON_MID   = "#D85A30"
+
+LIM       = "#854F0B"
+LIM_LIGHT = "#FAEEDA"
+LIM_MID   = "#BA7517"
+
+
+class NavButton(QPushButton):
+    """Botón de navegación lateral con colores de acento según módulo."""
+
+    def __init__(self, text: str, index: int, accent: str, accent_light: str, accent_mid: str):
         super().__init__()
         self.index = index
-        self.color_hex = color_hex
+        self._accent       = accent
+        self._accent_light = accent_light
+        self._accent_mid   = accent_mid
         self.setCheckable(True)
-        self.setMinimumHeight(65)
+        self.setMinimumHeight(42)
         self.setText(text)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        
+        self._refresh_style(False)
+
+    def _refresh_style(self, checked: bool):
+        if checked:
+            bg    = self._accent_light
+            color = self._accent
+        else:
+            bg    = "transparent"
+            color = TEXT_SEC
+
         self.setStyleSheet(f"""
             QPushButton {{
-                background-color: white;
-                border: 2px solid #E2E8F0;
-                border-radius: 20px;
-                color: #475569;
-                font-weight: 800;
-                font-size: 13px;
-                padding: 10px;
-                margin: 5px;
+                background-color: {bg};
+                border: none;
+                border-radius: 8px;
+                color: {color};
+                font-weight: 500;
+                font-size: 12px;
+                padding: 9px 10px;
+                text-align: left;
+                margin-bottom: 2px;
             }}
             QPushButton:hover {{
-                background-color: {color_hex};
-                color: white;
-                border: 2px solid {color_hex};
+                background-color: {self._accent_light if not checked else bg};
+                color: {self._accent};
             }}
             QPushButton:checked {{
-                background-color: {color_hex};
-                color: white;
-                border: 2px solid {color_hex};
-                font-size: 14px;
+                background-color: {self._accent_light};
+                color: {self._accent};
             }}
         """)
-        
-        # Sombra suave para el botón
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(15)
-        shadow.setColor(QColor(0, 0, 0, 30))
-        shadow.setOffset(0, 4)
-        self.setGraphicsEffect(shadow)
+
+    def setChecked(self, checked: bool):
+        super().setChecked(checked)
+        self._refresh_style(checked)
+
 
 class VistaPrincipal(QMainWindow):
-    # Señal que mapea la comunicación con el controlador principal
     cambiar_vista_solicitada = pyqtSignal(int)
 
     def __init__(self):
         super().__init__()
         self.setWindowTitle("MAT1186 | Engine Matemático Creativo")
-        self.setMinimumSize(1200, 900)
-        
-        # Colores de la paleta alegre
-        self.clr_rut = "#4ECDC4"   # Turquesa
-        self.clr_con = "#FF6B6B"   # Coral
-        self.clr_lim = "#FFD93D"   # Amarillo
+        self.setMinimumSize(1200, 760)
+
+        self.clr_rut = RUT
+        self.clr_con = CON
+        self.clr_lim = LIM
         self._modulos_habilitados = False
 
         self.init_ui()
 
+    # ── construcción de la UI ──────────────────────────────────
     def init_ui(self):
-        # Fondo Principal
+        # Fondo general (--bg)
         self.main_widget = QWidget()
-        self.main_widget.setStyleSheet("background-color: #F0F9FF;") # Azul nube muy claro
+        self.main_widget.setStyleSheet(f"background-color: {BG};")
         self.setCentralWidget(self.main_widget)
-        
+
         self.layout_master = QHBoxLayout(self.main_widget)
         self.layout_master.setContentsMargins(20, 20, 20, 20)
         self.layout_master.setSpacing(20)
 
-        # --- PANEL LATERAL (Sidebar Curvo) ---
+        # ── SIDEBAR ──────────────────────────────────────────
         self.sidebar = QFrame()
-        self.sidebar.setFixedWidth(280)
-        self.sidebar.setStyleSheet("""
-            QFrame {
-                background-color: white;
-                border-radius: 30px;
-            }
+        self.sidebar.setFixedWidth(220)
+        self.sidebar.setStyleSheet(f"""
+            QFrame {{
+                background-color: #FAFAF8;
+                border: 0.5px solid #D0CECC;
+                border-radius: 14px;
+            }}
         """)
+        sidebar_shadow = QGraphicsDropShadowEffect()
+        sidebar_shadow.setBlurRadius(18)
+        sidebar_shadow.setColor(QColor(0, 0, 0, 18))
+        sidebar_shadow.setOffset(0, 4)
+        self.sidebar.setGraphicsEffect(sidebar_shadow)
+
         sidebar_layout = QVBoxLayout(self.sidebar)
-        sidebar_layout.setContentsMargins(20, 40, 20, 40)
+        sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        sidebar_layout.setSpacing(0)
 
-        # Branding Alegre
-        logo_container = QVBoxLayout()
-        self.lbl_logo = QLabel("UCT")
-        self.lbl_logo.setStyleSheet("color: #3B82F6; font-size: 40px; font-weight: 900; margin-bottom: -10px;")
-        
-        self.lbl_sub = QLabel("MATEMÁTICA CREATIVA")
-        self.lbl_sub.setStyleSheet("color: #94A3B8; font-size: 12px; font-weight: bold; letter-spacing: 2px;")
-        
-        logo_container.addWidget(self.lbl_logo, alignment=Qt.AlignmentFlag.AlignCenter)
-        logo_container.addWidget(self.lbl_sub, alignment=Qt.AlignmentFlag.AlignCenter)
-        sidebar_layout.addLayout(logo_container)
-        
-        sidebar_layout.addSpacing(60)
+        # Branding
+        brand_frame = QFrame()
+        brand_frame.setStyleSheet(f"""
+            QFrame {{
+                background: transparent;
+                border: none;
+                border-bottom: 0.5px solid #D0CECC;
+                padding: 0px;
+            }}
+        """)
+        brand_layout = QVBoxLayout(brand_frame)
+        brand_layout.setContentsMargins(18, 20, 18, 16)
+        brand_layout.setSpacing(2)
 
-        # Botones de Navegación
-        self.btn_rut = AnimatedNavButton("VALIDACIÓN DE IDENTIDAD", 0, self.clr_rut)
-        self.btn_conicas = AnimatedNavButton("GEOMETRÍA DE CÓNICAS", 1, self.clr_con)
-        self.btn_limites = AnimatedNavButton("CÁLCULO DE LÍMITES", 2, self.clr_lim)
-        
+        self.lbl_logo = QLabel("UCT · EID1")
+        self.lbl_logo.setStyleSheet(
+            f"color: {TEXT_PRI}; font-size: 17px; font-weight: 500; letter-spacing: -0.3px;"
+            " border: none;"
+        )
+
+        self.lbl_sub = QLabel("CÁLCULO · GRUPO 03")
+        self.lbl_sub.setStyleSheet(
+            f"color: {TEXT_MUT}; font-size: 10px; font-weight: 400;"
+            " letter-spacing: 1.5px; border: none;"
+        )
+
+        brand_layout.addWidget(self.lbl_logo)
+        brand_layout.addWidget(self.lbl_sub)
+        sidebar_layout.addWidget(brand_frame)
+
+        # Sección de navegación
+        nav_section = QFrame()
+        nav_section.setStyleSheet("QFrame { background: transparent; border: none; }")
+        nav_sec_layout = QVBoxLayout(nav_section)
+        nav_sec_layout.setContentsMargins(12, 14, 12, 8)
+        nav_sec_layout.setSpacing(2)
+
+        nav_label = QLabel("MÓDULOS")
+        nav_label.setStyleSheet(
+            f"color: {TEXT_MUT}; font-size: 10px; letter-spacing: 1.5px;"
+            " padding: 0px 6px 6px 6px; border: none;"
+        )
+        nav_sec_layout.addWidget(nav_label)
+
+        self.btn_rut = NavButton("Validación de RUT",    0, RUT, RUT_LIGHT, RUT_MID)
+        self.btn_conicas = NavButton("Geometría de cónicas", 1, CON, CON_LIGHT, CON_MID)
+        self.btn_limites = NavButton("Cálculo de límites",   2, LIM, LIM_LIGHT, LIM_MID)
+
         self.botones = [self.btn_rut, self.btn_conicas, self.btn_limites]
         for btn in self.botones:
             btn.clicked.connect(lambda checked, b=btn: self.cambiar_pestana(b.index))
-            sidebar_layout.addWidget(btn)
+            nav_sec_layout.addWidget(btn)
 
+        sidebar_layout.addWidget(nav_section)
         sidebar_layout.addStretch()
-        
-        # Etiqueta de Grupo
-        self.lbl_grupo = QLabel("Diseñado por Grupo 03")
-        self.lbl_grupo.setStyleSheet("color: #CBD5E1; font-size: 11px; font-weight: bold;")
-        sidebar_layout.addWidget(self.lbl_grupo, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Pie del sidebar
+        foot_frame = QFrame()
+        foot_frame.setStyleSheet(f"""
+            QFrame {{
+                background: transparent;
+                border: none;
+                border-top: 0.5px solid #D0CECC;
+            }}
+        """)
+        foot_layout = QVBoxLayout(foot_frame)
+        foot_layout.setContentsMargins(18, 14, 18, 14)
+
+        self.lbl_grupo = QLabel("MAT1186 · 2025")
+        self.lbl_grupo.setStyleSheet(
+            f"color: {TEXT_MUT}; font-size: 11px; border: none;"
+        )
+        foot_layout.addWidget(self.lbl_grupo)
+        sidebar_layout.addWidget(foot_frame)
 
         self.layout_master.addWidget(self.sidebar)
 
-        # --- ÁREA DE TRABAJO (Glassmorphism) ---
+        # ── ÁREA PRINCIPAL ──────────────────────────────────
         self.content_area = QVBoxLayout()
-        
-        # Cabecera Dinámica
+        self.content_area.setSpacing(12)
+
+        # Cabecera (topbar)
         self.header_card = QFrame()
-        self.header_card.setFixedHeight(80)
-        self.header_card.setStyleSheet("background-color: white; border-radius: 20px;")
+        self.header_card.setFixedHeight(50)
+        self.header_card.setStyleSheet(f"""
+            QFrame {{
+                background-color: {SURFACE2};
+                border: 0.5px solid #D0CECC;
+                border-radius: 10px;
+            }}
+        """)
         h_header = QHBoxLayout(self.header_card)
-        
+        h_header.setContentsMargins(14, 0, 14, 0)
+        h_header.setSpacing(12)
+
+        # Acento vertical azul
+        self._topbar_accent = QFrame()
+        self._topbar_accent.setFixedSize(3, 22)
+        self._topbar_accent.setStyleSheet(f"background-color: {RUT_MID}; border-radius: 2px;")
+        h_header.addWidget(self._topbar_accent)
+
         self.lbl_seccion = QLabel("BIENVENIDO AL SISTEMA")
-        self.lbl_seccion.setStyleSheet("color: #1E293B; font-size: 22px; font-weight: 800; margin-left: 20px;")
+        self.lbl_seccion.setStyleSheet(
+            f"color: {TEXT_PRI}; font-size: 13px; font-weight: 500;"
+        )
         h_header.addWidget(self.lbl_seccion)
-        
+        h_header.addStretch()
+
+        # Badge de módulo
+        self._badge = QLabel("Módulo 11")
+        self._badge.setStyleSheet(f"""
+            color: {RUT};
+            background-color: {RUT_LIGHT};
+            font-size: 10px; font-weight: 500;
+            padding: 3px 8px; border-radius: 5px;
+        """)
+        h_header.addWidget(self._badge)
+
         self.content_area.addWidget(self.header_card)
 
-        # Contenedor de Vistas Principal
+        # Contenedor de vistas (stacked)
         self.view_container = QFrame()
-        self.view_container.setStyleSheet("""
-            QFrame {
-                background-color: rgba(255, 255, 255, 0.6);
-                border: 2px solid white;
-                border-radius: 40px;
-            }
+        self.view_container.setStyleSheet(f"""
+            QFrame {{
+                background-color: {SURFACE};
+                border: 0.5px solid #C8C6BE;
+                border-radius: 14px;
+            }}
         """)
-        
-        # Sombra de profundidad
         view_shadow = QGraphicsDropShadowEffect()
-        view_shadow.setBlurRadius(30)
-        view_shadow.setColor(QColor(0, 100, 200, 20))
+        view_shadow.setBlurRadius(22)
+        view_shadow.setColor(QColor(0, 0, 0, 16))
+        view_shadow.setOffset(0, 4)
         self.view_container.setGraphicsEffect(view_shadow)
-        
+
         self.layout_stack = QVBoxLayout(self.view_container)
+        self.layout_stack.setContentsMargins(0, 0, 0, 0)
+
         self.stacked_widget = QStackedWidget()
         self.stacked_widget.setStyleSheet("background: transparent;")
         self.layout_stack.addWidget(self.stacked_widget)
-        
+
         self.content_area.addWidget(self.view_container)
         self.layout_master.addLayout(self.content_area)
 
-        # Inicializar en la pestaña del RUT por defecto
         self.cambiar_pestana(0)
 
-    def cambiar_pestana(self, index):
+    # ── lógica de navegación ───────────────────────────────────
+    def cambiar_pestana(self, index: int):
         if index < 0 or index >= len(self.botones):
             return
 
         if index in (1, 2) and not self._modulos_habilitados:
-            # Resetear visual del botón que se intentó apretar
             self.botones[index].setChecked(False)
-
-            from PyQt6.QtWidgets import QMessageBox
             msg = QMessageBox(self)
             msg.setWindowTitle("Acceso bloqueado")
             msg.setText("⚠️  Primero debes validar un RUT.")
@@ -183,22 +294,36 @@ class VistaPrincipal(QMainWindow):
         for i, btn in enumerate(self.botones):
             btn.setChecked(i == index)
 
-        titulos = ["Validación de Identidad", "Geometría de Cónicas", "Cálculo de Límites"]
-        colores = [self.clr_rut, self.clr_con, self.clr_lim]
+        titulos  = ["Validación de Identidad", "Geometría de Cónicas", "Cálculo de Límites"]
+        accents  = [RUT_MID, CON_MID, LIM_MID]
+        badges   = ["Módulo 11", "Módulo Cónicas", "Módulo Límites"]
+        badge_bg = [RUT_LIGHT, CON_LIGHT, LIM_LIGHT]
+        badge_fg = [RUT, CON, LIM]
 
-        self.lbl_seccion.setText(titulos[index].upper())
+        self.lbl_seccion.setText(titulos[index])
         self.lbl_seccion.setStyleSheet(
-            f"color: {colores[index]}; font-size: 22px; font-weight: 800; margin-left: 20px;"
+            f"color: {TEXT_PRI}; font-size: 13px; font-weight: 500;"
         )
+        self._topbar_accent.setStyleSheet(
+            f"background-color: {accents[index]}; border-radius: 2px;"
+        )
+        self._badge.setText(badges[index])
+        self._badge.setStyleSheet(f"""
+            color: {badge_fg[index]};
+            background-color: {badge_bg[index]};
+            font-size: 10px; font-weight: 500;
+            padding: 3px 8px; border-radius: 5px;
+        """)
+
         self.stacked_widget.setCurrentIndex(index)
         self.cambiar_vista_solicitada.emit(index)
 
-    def navegar(self, index):
-        """Mantener compatibilidad por si otros submódulos llaman al antiguo nombre"""
+    def navegar(self, index: int):
+        """Compatibilidad con código antiguo."""
         self.cambiar_pestana(index)
 
     def agregar_vista(self, widget_vista):
-        """Inyecta los sub-widgets (RUT, Cónicas, Límites) enviados desde el Main/Controlador"""
+        """Inyecta sub-widgets enviados desde el controlador."""
         widget_vista.setStyleSheet("background: transparent;")
         self.stacked_widget.addWidget(widget_vista)
 
