@@ -2,6 +2,28 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtGui import QPainter, QPen, QColor, QFont, QBrush
 from PyQt6.QtCore import Qt
 
+
+BG        = "#F8F7F4"
+SURFACE   = "#FFFFFF"
+SURFACE2  = "#F1EFE8"
+BORDER    = "#C8C6BE"
+BORDER_STR= "#B0AEA8"
+
+TEXT_PRI  = "#1A1917"
+TEXT_SEC  = "#5F5E5A"
+TEXT_MUT  = "#9B9A95"
+
+RUT       = "#185FA5"
+RUT_LIGHT = "#E6F1FB"
+RUT_MID   = "#378ADD"
+
+OK        = "#3B6D11"
+OK_LIGHT  = "#EAF3DE"
+
+ERR       = "#993C1D"
+ERR_LIGHT = "#FAECE7"
+ERR_MID   = "#D85A30"
+
 class VistaConicas(QWidget):
     def __init__(self):
         super().__init__()
@@ -25,43 +47,29 @@ class VistaConicas(QWidget):
         )
 
         lbl_proc = QLabel("Desarrollo matemático (General → Canónica):")
-        lbl_proc.setStyleSheet("font-size: 12px; font-weight: 700; color: #334155;")
+
+        lbl_proc.setStyleSheet(
+            f"font-size: 10px; font-weight: 500; color: {TEXT_MUT};"
+            f" letter-spacing: 1px; border: none; background: transparent;"
+        )
         layout_izquierdo.addWidget(lbl_proc)
 
         self.txt_procedimiento = QTextEdit()
         self.txt_procedimiento.setReadOnly(True)
-        self.txt_procedimiento.setStyleSheet("""
-            QTextEdit {
-                        background-color: #1E293B;
-                        color: #A5F3FC;
-                        font-family: 'Consolas', monospace;
-                        font-size: 12px;
-                        border-radius: 10px;
-                        padding: 12px;
-                        border: none;
-            }
-                                             
-        """)
+        self.txt_procedimiento.setStyleSheet(self._estilo_consola(RUT_MID))
         self.txt_procedimiento.setMinimumHeight(160)
         layout_izquierdo.addWidget(self.txt_procedimiento)
 
         label_inverso = QLabel("Procedimiento Inverso (Canónica -> General):")
-        label_inverso.setStyleSheet("font-size: 12px; font-weight: 700; color: #334155;")
+        label_inverso.setStyleSheet(
+            f"font-size: 10px; font-weight: 500; color: {TEXT_MUT};"
+            f" letter-spacing: 1px; border: none; background: transparent;"
+        )
         layout_izquierdo.addWidget(label_inverso)
 
         self.txt_procedimiento_inverso = QTextEdit()
         self.txt_procedimiento_inverso.setReadOnly(True)
-        self.txt_procedimiento_inverso.setStyleSheet("""
-            QTextEdit {
-                background-color: #1E293B;
-                color: #FDE68A;
-                font-family: 'Consolas', monospace;
-                font-size: 12px;
-                border-radius: 10px;
-                padding: 12px;
-                border: none;
-            }
-        """)
+        self.txt_procedimiento_inverso.setStyleSheet(self._estilo_consola(RUT_MID))
         self.txt_procedimiento_inverso.setMinimumHeight(160)
         layout_izquierdo.addWidget(self.txt_procedimiento_inverso)
 
@@ -94,6 +102,18 @@ class VistaConicas(QWidget):
         self.input_radio   = self.plano.input_radio
         self.input_focos   = self.plano.input_focos
         self.btn_verificar = self.plano.btn_verificar 
+    
+    def _estilo_consola(self, color_borde: str) -> str:
+        return (
+            f"background-color: {BG}; "
+            f"color: {TEXT_SEC}; "
+            f"font-family: Consolas, 'Courier New', monospace; "
+            f"font-size: 12px; "
+            f"line-height: 1.7; "
+            f"padding: 14px 16px; "
+            f"border-radius: 8px; "
+            f"border-left: 3px solid {color_borde};"
+        )
 
 
 
