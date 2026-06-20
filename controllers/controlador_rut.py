@@ -11,7 +11,6 @@ from models.modelo_rut import (
     determinar_caso_limite,
 )
 
-
 class ControladorRut:
     def __init__(self, modelo_compartido=None):
         self.modelo = modelo_compartido
@@ -20,7 +19,7 @@ class ControladorRut:
         self.vista.boton_validar_clicado.connect(self.procesar_rut)
 
     def procesar_rut(self, rut_texto: str):
-        # ── Paso 1: Validar ──────────────────────────────────────
+        # Validar RUT y mostrar resultado 
         exito, log_validacion = validar_rut(rut_texto)
         self.vista.mostrar_resultado(exito, log_validacion)
 
@@ -41,29 +40,29 @@ class ControladorRut:
             self.vista.mostrar_conica("—", "—", "—")
             return
 
-        # ── Paso 2: Variable v ───────────────────────────────────
+        # Variable v y su logaritmo para la construcción de la ecuación 
         dv = extraer_dv(rut_texto)
         v, log_v = calcular_variable_auxiliar(dv)
         self.vista.mostrar_variable_v(log_v)
 
-        # ── Paso 3: Ecuación ─────────────────────────────────────
+        # Ecuación general y su logaritmo para la clasificación de la cónica 
         digitos = extraer_digitos(rut_texto)
         datos_ec = construir_ecuacion(digitos, v)
         self.vista.mostrar_ecuacion(datos_ec["log"])
 
-        # ── Paso 4: Clasificar cónica ────────────────────────────
+        # Clasifica la cónica de acuerdo a los coeficientes de la ecuación general 
         tipo, explicacion, log_clasificacion = clasificar_conica(datos_ec["A"], datos_ec["B"])
         self.vista.mostrar_clasificacion(log_clasificacion)
         self.vista.mostrar_conica(tipo, datos_ec["ecuacion_str"], explicacion)
 
-        # ── Paso 5: Forma canónica ───────────────────────────────
+        # Forma canónica y su logaritmo para la interpretación geométrica y el procedimiento inverso
         datos_canon = construir_forma_canonica(
             datos_ec["A"], datos_ec["B"],
             datos_ec["C"], datos_ec["D"], datos_ec["E"]
         )
         self.vista.mostrar_canonica(datos_canon["log"])
 
-        # ── Paso 6: Procedimiento inverso (canónica → general) ───
+        # Procedimiento inverso (canónica → general) 
         datos_inv = expansion_canonica_a_general(
             datos_ec["A"], datos_ec["B"],
             datos_canon["h"], datos_canon["k"],
@@ -72,10 +71,10 @@ class ControladorRut:
         )
         self.vista.mostrar_inverso(datos_inv["log"])
 
-        # ── Paso 7: Caso de límite (d8) ──────────────────────────
+        # Caso de límite (d8) 
         caso_limite = determinar_caso_limite(digitos[7])
 
-        # ── Guardar para los otros controladores ─────────────────
+        # Guarda para los otros controladores los datos relevantes de la ecuación, clasificación y canónica
         self.datos_ecuacion = {
             **datos_ec,
             **datos_canon,

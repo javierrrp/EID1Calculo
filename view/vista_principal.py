@@ -5,10 +5,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QFont
 
-
-# ─────────────────────────────────────────────────────────────
-#  Paleta (extraída del HTML de referencia)
-# ─────────────────────────────────────────────────────────────
+#  Paleta de colores
 BG        = "#F8F7F4"
 SURFACE   = "#FFFFFF"
 SURFACE2  = "#F1EFE8"
@@ -29,10 +26,8 @@ LIM       = "#854F0B"
 LIM_LIGHT = "#FAEEDA"
 LIM_MID   = "#BA7517"
 
-
 class NavButton(QPushButton):
-    """Botón de navegación lateral con colores de acento según módulo."""
-
+    # Botón de navegación lateral con colores de acento según módulo
     def __init__(self, text: str, index: int, accent: str, accent_light: str, accent_mid: str):
         super().__init__()
         self.index = index
@@ -79,7 +74,6 @@ class NavButton(QPushButton):
         super().setChecked(checked)
         self._refresh_style(checked)
 
-
 class VistaPrincipal(QMainWindow):
     cambiar_vista_solicitada = pyqtSignal(int)
 
@@ -95,9 +89,9 @@ class VistaPrincipal(QMainWindow):
 
         self.init_ui()
 
-    # ── construcción de la UI ──────────────────────────────────
+    # Contruccuión de la interfaz gráfica y sus componentes
     def init_ui(self):
-        # Fondo general (--bg)
+        # Fondo general
         self.main_widget = QWidget()
         self.main_widget.setStyleSheet(f"background-color: {BG};")
         self.setCentralWidget(self.main_widget)
@@ -106,7 +100,7 @@ class VistaPrincipal(QMainWindow):
         self.layout_master.setContentsMargins(20, 20, 20, 20)
         self.layout_master.setSpacing(20)
 
-        # ── SIDEBAR ──────────────────────────────────────────
+        # Sidebar de navegación
         self.sidebar = QFrame()
         self.sidebar.setFixedWidth(220)
         self.sidebar.setStyleSheet(f"""
@@ -126,7 +120,7 @@ class VistaPrincipal(QMainWindow):
         sidebar_layout.setContentsMargins(0, 0, 0, 0)
         sidebar_layout.setSpacing(0)
 
-        # Branding
+        # Branding del proyecto
         brand_frame = QFrame()
         brand_frame.setStyleSheet(f"""
             QFrame {{
@@ -203,7 +197,7 @@ class VistaPrincipal(QMainWindow):
 
         self.layout_master.addWidget(self.sidebar)
 
-        # ── ÁREA PRINCIPAL ──────────────────────────────────
+        # Área de contenido principal (header + vistas)
         self.content_area = QVBoxLayout()
         self.content_area.setSpacing(12)
 
@@ -273,7 +267,7 @@ class VistaPrincipal(QMainWindow):
 
         self.cambiar_pestana(0)
 
-    # ── lógica de navegación ───────────────────────────────────
+    # Lógica de navegación 
     def cambiar_pestana(self, index: int):
         if index < 0 or index >= len(self.botones):
             return
@@ -319,11 +313,11 @@ class VistaPrincipal(QMainWindow):
         self.cambiar_vista_solicitada.emit(index)
 
     def navegar(self, index: int):
-        """Compatibilidad con código antiguo."""
+        # Compatibilidad con código antiguo
         self.cambiar_pestana(index)
 
     def agregar_vista(self, widget_vista):
-        """Inyecta sub-widgets enviados desde el controlador."""
+        # Inyecta sub-widgets enviados desde el controlador
         widget_vista.setStyleSheet("background: transparent;")
         self.stacked_widget.addWidget(widget_vista)
 

@@ -8,24 +8,23 @@ from controllers.controlador_limites import ControladorLimites
 
 class ControladorPrincipal:
     def __init__(self):
-        # 1. El Modelo general de la aplicación
+        # El Modelo general de la aplicación
         self.modelo = ModeloMatematico()
         
-        # 2. La Vista Maestra (Contenedor de ventanas con barra lateral)
+        # La Vista Maestra (Contenedor de ventanas con barra lateral)
         self.vista_principal = VistaPrincipal()
         
-        # 3. Los controladores hijos vinculados
+        # Los controladores hijos vinculados
         self.ctrl_rut = ControladorRut(self.modelo)
         self.ctrl_conicas = ControladorConicas(self.ctrl_rut)
         self.ctrl_limites = ControladorLimites(self.ctrl_rut)
         
-        # 4. Inyectar los sub-widgets de las vistas en el QStackedWidget secuencialmente
+        # Inyecta los sub-widgets de las vistas en el QStackedWidget secuencialmente
         self.vista_principal.agregar_vista(self.ctrl_rut.vista)      # Índice 0
         self.vista_principal.agregar_vista(self.ctrl_conicas.vista)  # Índice 1
         self.vista_principal.agregar_vista(self.ctrl_limites.vista)  # Índice 2
 
-        # 5. Conexión de eventos y sincronización de Pestañas
-        
+        # Conexión de eventos y sincronización de Pestañas
         # Botón RUT (Índice 0): Navegación pura a la zona de ingreso
         self.vista_principal.botones[0].clicked.connect(
             lambda: self.vista_principal.cambiar_pestana(0)

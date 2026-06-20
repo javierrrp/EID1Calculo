@@ -5,12 +5,11 @@ class ModeloMatematico:
         self.dv = ""       # Dígito verificador
 
     def validar_rut(self, rut_completo):
-        """
-        Implementación manual del Algoritmo Módulo 11 (Fase 2 del PDF).
-        Retorna (bool, mensaje_paso_a_paso)
-        """
+        
+        # Implementación manual del Algoritmo Módulo 11 
+        # Retorna (bool, mensaje_paso_a_paso)
         try:
-            # 1. Limpieza de datos (quitar puntos y guión)
+            # Limpieza de datos (quitar puntos y guión)
             rut_limpio = rut_completo.replace(".", "").replace("-", "").upper()
             cuerpo = rut_limpio[:-1]
             dv_ingresado = rut_limpio[-1]
@@ -18,7 +17,7 @@ class ModeloMatematico:
             if not cuerpo.isdigit():
                 return False, "Error: El cuerpo del RUT debe contener solo números."
 
-            # 2. Algoritmo Módulo 11
+            # Algoritmo Módulo 11
             suma = 0
             multiplicador = 2
             pasos = []
@@ -35,7 +34,7 @@ class ModeloMatematico:
             resto = suma % 11
             resultado = 11 - resto
             
-            # Determinar DV esperado
+            # Determinar DV esperado para comparación
             if resultado == 11:
                 dv_esperado = "0"
             elif resultado == 10:
@@ -43,10 +42,10 @@ class ModeloMatematico:
             else:
                 dv_esperado = str(resultado)
 
-            # 3. Guardar dígitos si es válido para las siguientes fases
+            # Guarda los dígitos si es válido para las siguientes fases
             if dv_ingresado == dv_esperado:
                 self.rut_valido = True
-                # Asegurar que tenemos exactamente 8 dígitos (rellenar con 0 si es necesario)
+                # Asegura que tenemos exactamente 8 dígitos (rellena con 0 si es necesario)
                 cuerpo_pad = cuerpo.zfill(8)
                 self.digitos = [int(d) for d in cuerpo_pad]
                 self.dv = dv_ingresado
@@ -61,13 +60,10 @@ class ModeloMatematico:
             return False, f"Error crítico: {str(e)}"
 
     def obtener_coeficientes_conica(self):
-        """
-        Calcula A, B, C, D, E y v según las reglas de la Fase 4
-        """
+        # Calcula A, B, C, D, E y v según las reglas de la Fase 4
         if not self.rut_valido: return None
 
         d = self.digitos
-        # Ejemplo de reglas del PDF:
         v = d[0] + d[1] # Variable auxiliar v
         A = d[2] + 2
         B = d[3] + 3
@@ -82,9 +78,8 @@ class ModeloMatematico:
         return {"A": A, "B": B, "C": C, "D": D, "E": E, "v": v}
 
     def obtener_caso_limite(self):
-        """
-        Determina el caso de la función por tramos (Fase 6)
-        """
+        # Determina el caso de la función por tramos (Fase 6)
+        
         d8 = self.digitos[7]
         residuo = d8 % 3
         

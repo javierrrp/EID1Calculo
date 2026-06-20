@@ -1,6 +1,5 @@
 from logging import log
 
-
 def separar_rut(rut_texto: str) -> tuple[str, str]:
     rut = rut_texto.strip().replace(".", "").replace(" ", "").upper()
     if "-" not in rut:
@@ -9,7 +8,6 @@ def separar_rut(rut_texto: str) -> tuple[str, str]:
     if not cuerpo or not dv:
         raise ValueError("El RUT debe tener cuerpo y dígito verificador.")
     return cuerpo, dv
-
 
 def validar_rut(rut_texto: str) -> tuple[bool, str]:
     log = []
@@ -82,7 +80,6 @@ def validar_rut(rut_texto: str) -> tuple[bool, str]:
         log.append("✗ RUT INVÁLIDO")
         return False, "\n".join(log)
 
-
 def extraer_digitos(rut_texto: str) -> list[int]:
     cuerpo, _ = separar_rut(rut_texto)
     if not cuerpo.isdigit():
@@ -92,14 +89,12 @@ def extraer_digitos(rut_texto: str) -> list[int]:
     cuerpo_8 = cuerpo.zfill(8)
     return [int(c) for c in cuerpo_8]
 
-
 def extraer_dv(rut_texto: str) -> str:
     _, dv = separar_rut(rut_texto)
     validos_dv = [str(i) for i in range(10)] + ["K"]
     if dv not in validos_dv:
         raise ValueError("El dígito verificador debe ser 0-9 o K.")
     return dv
-
 
 def calcular_variable_auxiliar(dv: str) -> tuple[int, str]:
     log = ["── Variable Auxiliar v ──"]
@@ -127,7 +122,6 @@ def calcular_variable_auxiliar(dv: str) -> tuple[int, str]:
     log.append("")
     log.append("Este valor v se usará como DENOMINADOR en el cálculo de los coeficientes A y B.")
     return v, "\n".join(log)
-
 
 def construir_ecuacion(digitos: list[int], v: int) -> dict:
     d = digitos
@@ -242,7 +236,6 @@ def construir_ecuacion(digitos: list[int], v: int) -> dict:
         "log": "\n".join(log)
     }
 
-
 def clasificar_conica(A: float, B: float) -> tuple[str, str, str]:
     eps = 1e-9
     az = abs(A) < eps
@@ -306,10 +299,9 @@ def clasificar_conica(A: float, B: float) -> tuple[str, str, str]:
     return "Hipérbola", texto, "\n".join(log)
 
 def construir_forma_canonica(A: float, B: float, C: float, D: float, E: float) -> dict:
-    """
-    Transforma la ecuación general Ax²+By²+Cx+Dy+E=0 a su forma canónica
-    mostrando el procedimiento paso a paso de completar el cuadrado.
-    """
+    # Transforma la ecuación general Ax²+By²+Cx+Dy+E=0 a su forma canónica
+    # mostrando el procedimiento paso a paso de completar el cuadrado.
+    
     log = ["── Transformación: Ecuación General → Forma Canónica ──"]
     log.append("")
     log.append(f"Partimos de: ({_fmt(A)})x² + ({_fmt(B)})y² + ({_fmt(C)})x + ({_fmt(D)})y + ({_fmt(E)}) = 0")
@@ -412,11 +404,10 @@ def expansion_canonica_a_general(A: float, B: float,
                                   h: float, k: float,
                                   lado_der: float = 0,
                                   tipo: str = "") -> dict:
-    """
-    Dado el centro (h, k) y los coeficientes A, B,
-    expande la forma canónica de vuelta a Ax²+By²+Cx+Dy+E=0
-    mostrando cada paso algebraico de manera clara.
-    """
+    
+    #Dado el centro (h, k) y los coeficientes A, B,
+    # expande la forma canónica de vuelta a Ax²+By²+Cx+Dy+E=0
+    # mostrando cada paso algebraico de manera clara.
     log = ["── Procedimiento Inverso: Forma Canónica → Ecuación General ──"]
     log.append("")
     log.append(f"Partimos de la forma canónica con centro/vértice (h, k) = ({_fmt(h)}, {_fmt(k)})")
@@ -461,7 +452,6 @@ def expansion_canonica_a_general(A: float, B: float,
         "log": "\n".join(log)
     }
 
-
 def determinar_caso_limite(d8: int) -> dict:
     residuo = d8 % 3
     casos = {
@@ -484,15 +474,13 @@ def determinar_caso_limite(d8: int) -> dict:
         "residuo": residuo,
     }
 
-
-# ── helpers privados ─────────────────────────────────────────
+# Helpers privados para formato y log detallado
 def _fstr(n, d):
     if d == 1 or n == 0:
         return str(int(n))
     if n % d == 0:
         return str(int(n // d))
     return f"{int(n)}/{int(d)}"
-
 
 def _fmt(v):
     try:
@@ -502,7 +490,6 @@ def _fmt(v):
         return str(v)
     s = f"{v:.4f}".rstrip("0").rstrip(".")
     return s
-
 
 def _log(msg, lines):
     lines.append(msg)

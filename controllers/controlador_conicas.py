@@ -15,7 +15,7 @@ class ControladorConicas:
 
     def ejecutar_modulo(self):
         
-        # ── 1. Obtener y validar datos del RUT ───────────────────
+        # Obtiene y valida datos del RUT 
         datos = self.controlador_rut.datos_ecuacion
 
         llaves_requeridas = ["A", "B", "C", "D", "E"]
@@ -27,7 +27,7 @@ class ControladorConicas:
 
         A = datos["A"]; B= datos["B"]; C = datos["C"]; D = datos["D"]; E = datos["E"]
 
-        # ── 2. Crear el modelo con validación interna ─────────────
+        # Crea el modelo con validación interna 
         try:
             self.modelo_conicas = ModeloConicas(A, B, C, D, E)
         except ErrorConicas as exc:
@@ -37,14 +37,14 @@ class ControladorConicas:
             self._limpiar_vista(f"Error inesperado al inicializar conicas:\n{exc}")
             return
         
-        # ── 3. Clasificar ─────────────────────────────────────────
+        # Clasifica la cónica 
         try:
             tipo = self.modelo_conicas.clasificar_conica()
         except ErrorConicas as exc:
             self._limpiar_vista(f"Error al clasificar la cónica:\n{exc}")
             return
         
-        # ── 4. Obtener elementos geométricos ──────────────────────
+        # Obtiene los elementos geométricos
         try: 
             self.elementos_correctos = self.modelo_conicas.obtener_elementos_geometricos()
         except ErrorConicas as exc:
@@ -56,7 +56,7 @@ class ControladorConicas:
                 f"El procedimiento de completar el cuadrado se mostrará de todas formas."
             )
 
-        # ── 5. Completar cuadrados ────────────────────────────────
+        # Completa los cuadrados para llevar a forma canónica
        
         try:
             h, k, lado_der = self.modelo_conicas.completar_cuadrados()
@@ -65,28 +65,27 @@ class ControladorConicas:
             return
 
 
-        # ── 6. Expansión inversa ──────────────────────────────────
+        # Expansión inversa para mostrar el procedimiento inverso  
         try: 
             c_calc, d_calc, e_calc, procedimiento_inverso_txt = self.modelo_conicas.expandir_general(h, k, lado_der)
         except ErrorConicas as exc:
             procedimiento_inverso_txt = (f"No se pudo generar el procedimiento inverso.\nDetalle: {exc}")
 
-        # ── 7. Actualizar la vista ────────────────────────────────
-        
+        # Actualiza la vista con toda la información obtenida
         self.vista.lbl_titulo.setText(f"Resultado: {tipo}")
         self.vista.txt_procedimiento.setText(self.modelo_conicas.obtener_pasos_texto())
         self.vista.txt_procedimiento_inverso.setText(procedimiento_inverso_txt)
 
-        #mostrar solo campos del tipo actual
+        # Muestra solo campos del tipo actual
         self.vista.plano.mostrar_campos_segun_conica(tipo)
 
-        #Vaciar campos para llenarlos
+        # Vacia los campos para llenarlos
         self.vista.input_centro.clear()
         self.vista.input_radio.clear()
         self.vista.input_focos.clear()
 
 
-        # ── 8. Dibujar en el plano cartesiano ────────────────────
+        # Dibuja en el plano cartesiano 
         try: 
             if tipo == "Circunferencia":
             # Si es circunferencia, el lado derecho es el Radio al cuadrado
@@ -100,10 +99,7 @@ class ControladorConicas:
                 f"Los cálculos son correctos, pero no se pudo renderizar la figura:\n{exc}"
             )
 
-    # ─────────────────────────────────────────────────────────────
-    # VERIFICAR RESPUESTAS DEL ESTUDIANTE
-    # ─────────────────────────────────────────────────────────────        
-
+    # Verifiación de respuestas del usuario contra la verdad del modelo
     def verificar(self):
         if not self.elementos_correctos:
             msg = QMessageBox(self.vista)
@@ -126,7 +122,7 @@ class ControladorConicas:
         resp_radio  = self.vista.input_radio.text().strip()
 
 
-        #Verificar si hay campos vacios
+        # Verifica si hay campos vacios
         campos_vacios = []
         if self.vista.input_centro.isVisible() and not resp_centro:
             campos_vacios.append("• Centro (h, k)")
@@ -184,11 +180,7 @@ class ControladorConicas:
  
         self._mostrar_resultado(mensaje)
     
-
-    # ─────────────────────────────────────────────────────────────
-    # HELPERS PRIVADOS
-    # ─────────────────────────────────────────────────────────────
-
+    # Herramienta para extraer coordenadas de un string con formato "(x, y)"
     @staticmethod
     def extraer_coordenadas(texto):
         if not texto:
@@ -252,7 +244,3 @@ class ControladorConicas:
             return False
         return all(k in datos for k in llaves)
             
-
-        
-
-

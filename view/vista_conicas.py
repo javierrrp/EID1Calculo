@@ -2,7 +2,6 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtGui import QPainter, QPen, QColor, QFont, QBrush
 from PyQt6.QtCore import Qt
 
-
 BG        = "#F8F7F4"
 SURFACE   = "#FFFFFF"
 SURFACE2  = "#F1EFE8"
@@ -37,7 +36,6 @@ class VistaConicas(QWidget):
         layout_izquierdo = QVBoxLayout(panel_izquierdo)
         layout_izquierdo.setContentsMargins(0, 0, 0, 0)
         layout_izquierdo.setSpacing(10)
- 
 
         self.lbl_titulo = QLabel("Analizando Conica...")
         self.lbl_titulo.setWordWrap(True)
@@ -76,8 +74,7 @@ class VistaConicas(QWidget):
         layout_izquierdo.addStretch() 
         layout_principal.addWidget(panel_izquierdo, stretch=1)
 
-        # ── PANEL DERECHO: plano con panel flotante ────────────
-
+        # Panel derecho: plano con panel flotante 
         panel_derecho = QWidget()
         panel_derecho.setStyleSheet("background: transparent;")
         layout_derecho = QVBoxLayout(panel_derecho)
@@ -96,7 +93,7 @@ class VistaConicas(QWidget):
 
         layout_principal.addWidget(panel_derecho, stretch=1)
  
-        # ── Alias para que el controlador siga funcionando ─────
+        # Alias para que el controlador siga funcionando 
         # El controlador accede a self.vista.input_centro, etc.
         self.input_centro = self.plano.input_centro
         self.input_radio   = self.plano.input_radio
@@ -115,17 +112,13 @@ class VistaConicas(QWidget):
             f"border-left: 3px solid {color_borde};"
         )
 
-
-
-
 class PlanoCartesiano(QWidget):
     def __init__(self):
         super().__init__()
         self.setMinimumSize(420, 440)
-        # Fondo blanco para que parezca hoja de cuaderno
         self.setStyleSheet("background-color: white; border: 2px solid #bdc3c7; border-radius: 8px;")
 
-        #inicializar variables para el centro de la conica
+        # Inicializa variables para el centro de la conica
         self.h = None
         self.k = None
         self.tipo_conica = None
@@ -179,11 +172,7 @@ class PlanoCartesiano(QWidget):
             QPushButton:pressed{ background-color: #1D4ED8; }
         """)
         lay.addWidget(self.btn_verificar)
-
-
- 
         self.panel_inputs.adjustSize()
-    
     
     def _hacer_campo(self, parent_lay, etiqueta: str, placeholder: str) -> QLineEdit:
         
@@ -267,8 +256,7 @@ class PlanoCartesiano(QWidget):
         self.radio = radio
         self.update()
 
-
-    #mover grafico
+    # Movimiento de grafico
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self.last_mouse_pos = event.pos()
@@ -340,14 +328,14 @@ class PlanoCartesiano(QWidget):
         for i in range(limite_min * 2, limite_max * 2):
             val = i * 0.5
 
-            # Dibujar líneas solo si calza con el paso_grilla asignado
+            # Dibuja líneas solo si calza con el paso_grilla asignado
             if (val * 10) % (paso_grilla * 10) != 0:
                 continue
 
             px = centro_x + int(val * self.separacion)
             py = centro_y - int(val * self.separacion)
             
-            # Formatear el número (quita los ceros a la derecha)
+            # Formatea el número (quita los ceros a la derecha)
             texto_numero = f"{val:g}"
 
             # Líneas verticales (Eje X)
@@ -370,7 +358,6 @@ class PlanoCartesiano(QWidget):
         painter.setPen(QPen(QColor(50, 50, 50), 2))
         painter.drawLine(0, centro_y, ancho, centro_y)
         painter.drawLine(centro_x, 0, centro_x, alto)
-
     
         if self.h is not None and self.k is not None:
             px = centro_x + (self.h * self.separacion)
@@ -383,9 +370,6 @@ class PlanoCartesiano(QWidget):
                 painter.setBrush(QColor(52, 152, 219, 40))
                 painter.drawEllipse(int(px - radio_px), int(py - radio_px), int(radio_px * 2), int(radio_px * 2))
 
-        
             painter.setBrush(QColor("red"))
             painter.setPen(Qt.GlobalColor.transparent)
             painter.drawEllipse(int(px) - 4, int(py) - 4, 8, 8)
-
-    

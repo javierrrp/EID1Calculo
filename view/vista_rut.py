@@ -6,10 +6,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor
 
-
-# ─────────────────────────────────────────────────────────────
-#  Paleta (tema claro, consistente con vista_principal.py)
-# ─────────────────────────────────────────────────────────────
+#  Paleta de colores
 BG        = "#F8F7F4"
 SURFACE   = "#FFFFFF"
 SURFACE2  = "#F1EFE8"
@@ -31,7 +28,6 @@ ERR       = "#993C1D"
 ERR_LIGHT = "#FAECE7"
 ERR_MID   = "#D85A30"
 
-
 class VistaRut(QWidget):
     boton_validar_clicado = pyqtSignal(str)
 
@@ -44,7 +40,7 @@ class VistaRut(QWidget):
         layout.setContentsMargins(20, 18, 20, 18)
         layout.setSpacing(14)
 
-        # ── Tarjeta de entrada ────────────────────────────────
+        # Tarjeta de entrada 
         card = QFrame()
         card.setStyleSheet(f"""
             QFrame {{
@@ -128,7 +124,7 @@ class VistaRut(QWidget):
         card_layout.addLayout(row_btn)
         layout.addWidget(card)
 
-        # ── Pestañas ──────────────────────────────────────────
+        # Pestañas de desarrollo (validación, ecuación, clasificación, canónica, inverso) 
         tabs_container = QWidget()
         tabs_container.setStyleSheet("background: transparent;")
         tabs_layout = QHBoxLayout(tabs_container)
@@ -161,7 +157,7 @@ class VistaRut(QWidget):
         tabs_layout.addStretch()
         layout.addWidget(tabs_container)
 
-        # ── Subtítulo ─────────────────────────────────────────
+        # Subtítulo descriptivo  
         self._subtitulos = {
             "validacion":    "Procedimiento de validación del RUT — Algoritmo Módulo 11",
             "variable_v":    "Cálculo de la variable auxiliar v a partir del dígito verificador",
@@ -185,7 +181,7 @@ class VistaRut(QWidget):
         """)
         layout.addWidget(self.lbl_subtitulo)
 
-        # ── Stack de contenido ────────────────────────────────
+        # Stack de contenido (páginas de desarrollo y resultado final)
         self._stack = QFrame()
         self._stack.setStyleSheet("background: transparent; border: none;")
         self._stack.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -205,7 +201,7 @@ class VistaRut(QWidget):
         layout.addWidget(self._stack, 1)
         self._mostrar_tab("validacion")
 
-    # ── constructores internos ─────────────────────────────────
+    # Constructores internos de widgets complejos
     def _hacer_scroll_consola(self, texto_inicial: str) -> QScrollArea:
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -291,7 +287,7 @@ class VistaRut(QWidget):
         lay.setContentsMargins(14, 14, 14, 18)
         lay.setSpacing(10)
 
-        # ── Fila Estado + Cónica ──────────────────────────────
+        # Fila Estado + Cónica 
         row_top = QHBoxLayout()
         row_top.setSpacing(16)
 
@@ -337,7 +333,7 @@ class VistaRut(QWidget):
         sep.setStyleSheet(f"color: {BORDER}; background: {BORDER}; border: none; max-height: 1px;")
         lay.addWidget(sep)
 
-        # ── Explicación ───────────────────────────────────────
+        # Explicación de la clasificación de la cónica
         self.lbl_explicacion = QLabel("—")
         self.lbl_explicacion.setWordWrap(True)
         self.lbl_explicacion.setStyleSheet(
@@ -346,7 +342,7 @@ class VistaRut(QWidget):
         )
         lay.addWidget(self.lbl_explicacion)
 
-        # ── Ecuación general ──────────────────────────────────
+        # Ecuación general de la cónica 
         lbl_sec3 = QLabel("ECUACIÓN GENERAL")
         lbl_sec3.setStyleSheet(
             f"font-size: 10px; font-weight: 500; color: {TEXT_MUT};"
@@ -372,7 +368,7 @@ class VistaRut(QWidget):
         """)
         lay.addWidget(self.lbl_ecuacion)
 
-        # ── Hint de navegación ────────────────────────────────
+        # Hint de navegación 
         lbl_nav = QLabel(
             "Para ver el desarrollo completo, usa las pestañas numeradas ① ② ③ ④ ⑤"
         )
@@ -391,7 +387,7 @@ class VistaRut(QWidget):
         scroll.setWidget(inner)
         return scroll
 
-    # ── slots públicos (compatibles con el controlador) ────────
+    # Slots públicos (compatibles con el controlador) 
     def mostrar_resultado(self, exito: bool, log_validacion: str):
         lbl = self._tabs_content["validacion"]._label_contenido
         if exito:
@@ -438,7 +434,7 @@ class VistaRut(QWidget):
     def mostrar_clasificacion(self, log_clas: str):
         self._tabs_content["clasificacion"]._label_contenido.setText(log_clas)
 
-    # ── helpers ────────────────────────────────────────────────
+    # Helpers de slots y lógica interna 
     def _emitir_validar(self):
         self.boton_validar_clicado.emit(self.input_rut.text())
 

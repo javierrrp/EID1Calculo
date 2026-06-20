@@ -5,20 +5,20 @@ from PyQt6.QtWidgets import QMessageBox
 class ControladorLimites:
     def __init__(self, ctrl_rut):
         self.ctrl_rut = ctrl_rut
-        self.vista = VistaLimites()  # Instanciada para calzar con el archivo Principal
+        self.vista = VistaLimites() 
         self.modelo_propio = ModeloLimites()
         
-        # CONEXIÓN CRÍTICA: Escuchar el clic del botón de verificación
+        # Escucha el clic del botón de verificación
         self.vista.btn_validar.clicked.connect(self.procesar_evaluacion_estudiante)
 
     def ejecutar_modulo(self):
-        """Método gatillado al pulsar el botón lateral en la barra de navegación"""
+        # Método gatillado al pulsar el botón lateral en la barra de navegación
         self.procesar_y_actualizar()
 
     def procesar_y_actualizar(self):
         cuerpo_rut = None
         
-        # Nivel 1: Intentar rescatar desde el modelo interno del Controlador de RUT
+        # Rescata desde el modelo interno del Controlador de RUT
         if hasattr(self.ctrl_rut, 'modelo') and self.ctrl_rut.modelo:
             modelo_g = self.ctrl_rut.modelo
             if hasattr(modelo_g, 'rut_limpio') and modelo_g.rut_limpio:
@@ -28,14 +28,14 @@ class ControladorLimites:
             elif hasattr(modelo_g, 'rut') and modelo_g.rut:
                 cuerpo_rut = modelo_g.rut
 
-        # Nivel 2: Buscar en las propiedades raíz del controlador de RUT
+        # Busca en las propiedades raíz del controlador de RUT
         if not cuerpo_rut:
             if hasattr(self.ctrl_rut, 'rut_limpio') and self.ctrl_rut.rut_limpio:
                 cuerpo_rut = self.ctrl_rut.rut_limpio
             elif hasattr(self.ctrl_rut, 'cuerpo') and self.ctrl_rut.cuerpo:
                 cuerpo_rut = self.ctrl_rut.cuerpo
 
-        # Nivel 3: Fuerza bruta (Ir a la interfaz gráfica a sacar el texto del campo)
+        # Va a la interfaz gráfica a sacar el texto del campo
         if not cuerpo_rut:
             if hasattr(self.ctrl_rut, 'vista') and self.ctrl_rut.vista:
                 vista_r = self.ctrl_rut.vista
@@ -47,38 +47,34 @@ class ControladorLimites:
                             break
 
         if cuerpo_rut:
-            # Limpiar el RUT por seguridad
+            # Limpia el RUT por seguridad
             rut_numerico = "".join(caracter for caracter in str(cuerpo_rut) if caracter.isdigit())
             
             if len(rut_numerico) >= 4:
-                # Sincronizar y configurar el modelo analítico de límites con el RUT real
+                # Sincroniza y configura el modelo analítico de límites con el RUT real
                 self.modelo_propio.configurar_desde_rut(rut_numerico)
                 
-                # Sincronizar la vista guardando el modelo activo tanto en la vista como en el controlador
+                # Sincroniza la vista guardando el modelo activo tanto en la vista como en el controlador
                 self.vista.modelo_actual = self.modelo_propio
                 
-                # Forzar a la vista a poblar la tabla y redibujar el lienzo interactivo
+                # Forza a la vista a poblar la tabla y redibujar el lienzo interactivo
                 self.vista.mostrar_datos_modulo_limites(self.modelo_propio)
 
     def procesar_evaluacion_estudiante(self):
-        """
-        Captura el análisis del estudiante desde los inputs de texto y ComboBoxes reales,
-        y lo contrasta rigurosamente con las propiedades teóricas del modelo dinámico.
-        """
-        # Garantizar que estamos usando el modelo que actualmente generó los datos en pantalla
+        # Garantiza que usamos el modelo que actualmente generó los datos en pantalla
         if hasattr(self.vista, 'modelo_actual') and self.vista.modelo_actual is not None:
             modelo_evaluacion = self.vista.modelo_actual
         else:
             modelo_evaluacion = self.modelo_propio
 
-        # 1. Capturar entradas reales de la interfaz (normalizadas a minúsculas y tolerantes a comas)
+        # Captura entradas reales de la interfaz (normalizadas a minúsculas y tolerantes a comas)
         ans_izq = self.vista.input_lim_izq.text().strip().lower().replace(",", ".")
         ans_der = self.vista.input_lim_der.text().strip().lower().replace(",", ".")
         ans_existe = self.vista.combo_existe.currentText().strip()
         ans_fa = self.vista.input_fa.text().strip().lower().replace(",", ".")
         ans_clasificacion_idx = self.vista.combo_continuidad.currentIndex()
 
-        # 2. Control estricto de campos vacíos o sin seleccionar
+        # Control estricto de campos vacíos o sin seleccionar
         if (not ans_izq or not ans_der or ans_existe in ["[ Seleccione ]", ""] or 
             not ans_fa or ans_clasificacion_idx <= 0):
             
@@ -92,12 +88,12 @@ class ControladorLimites:
             msg_campos.exec()
             return
 
-        # 3. Obtener los límites analíticos exactos desde el modelo sincronizado
+        # Obtiene los límites analíticos exactos desde el modelo sincronizado
         lim_izq_teorico, lim_der_teorico, existe_teorico = modelo_evaluacion.obtener_limites_teoricos()
         
         errores = []
 
-        # --- VALIDAR LÍMITE POR IZQUIERDA ---
+        # Valida Límite por la izquierda 
         try:
             if lim_izq_teorico in [float('-inf'), "-inf"]:
                 if '-inf' not in ans_izq and 'infinito' not in ans_izq and '-' not in ans_izq:
@@ -108,7 +104,7 @@ class ControladorLimites:
         except ValueError:
             errores.append("- Formato inválido en 'Lim (x→a⁻)'. Debe ser un número o '-inf'.")
 
-        # --- VALIDAR LÍMITE POR DERECHA ---
+        # Valida Límite por la derecha
         try:
             if lim_der_teorico in [float('inf'), "inf"]:
                 if 'inf' not in ans_der or '-inf' in ans_der:
@@ -119,12 +115,12 @@ class ControladorLimites:
         except ValueError:
             errores.append("- Formato inválido en 'Lim (x→a⁺)'. Debe ser un número o 'inf'.")
 
-        # --- VALIDAR EXISTENCIA DEL LÍMITE GLOBAL ---
+        # Valida la existencia del límite global 
         str_existe_esperado = "Sí" if existe_teorico else "No"
         if ans_existe.lower() != str_existe_esperado.lower():
             errores.append(f"- Conclusión de existencia errónea. El límite global { 'SÍ' if existe_teorico else 'NO' } existe.")
 
-        # --- VALIDAR VALOR DE LA FUNCIÓN EN EL PUNTO f(a) ---
+        # Valida el valor de la función en el punto f(a) 
         if modelo_evaluacion.caso in [1, 3]:
             # Flexibilidad de sinonimia admitida para el campo "No existe"
             terminos_no_existe = ["no existe", "indef", "none", "no", "no definida", "n/a", "indefinido"]
@@ -139,8 +135,7 @@ class ControladorLimites:
             except ValueError:
                 errores.append(f"- Formato numérico inválido en el casillero de f(a).")
 
-        # --- VALIDAR CLASIFICACIÓN DEL TIPO DE DISCONTINUIDAD ---
-        # Índices esperados: 2 -> Evitable, 3 -> Salto Finito, 4 -> Asintótica
+        # Valida clasificación del tipo de discontinuidad
         indice_esperado = 0
         if modelo_evaluacion.caso == 1: indice_esperado = 2
         elif modelo_evaluacion.caso == 2: indice_esperado = 3
@@ -149,11 +144,11 @@ class ControladorLimites:
         if ans_clasificacion_idx != indice_esperado:
             errores.append(f"- La clasificación de la discontinuidad seleccionada no corresponde al caso analítico.")
 
-        # 4. Desplegar veredicto final en la interfaz
+        # Valida el veredicto final en la interfaz
         if not errores:
             self.actualizar_barra_feedback("✓ ANÁLICES CORRECTO: ¡Excelente defensa matemática!", "#DCFCE7", "#166534", "#BBF7D0")
             
-            # Ventana de éxito moderna y limpia
+            # Ventana de validación exitosa 
             msg_exito = QMessageBox(self.vista)
             msg_exito.setWindowTitle("Evaluación Exitosa")
             msg_exito.setText("""
@@ -171,11 +166,11 @@ class ControladorLimites:
         else:
             self.actualizar_barra_feedback("✗ ANÁLISIS INCORRECTO: Revisa tus respuestas.", "#FEE2E2", "#991B1B", "#FCA5A5")
             
-            # Llamada al nuevo componente estilizado para listar las discrepancias
+            # Llama al nuevo componente estilizado para listar las discrepancias
             self.mostrar_advertencia_elegante(errores)
 
     def mostrar_advertencia_elegante(self, lista_errores):
-        """Genera una ventana de alerta altamente estilizada y moderna para los errores"""
+        # Genera una ventana de alerta altamente estilizada y moderna para los errores
         msg_box = QMessageBox(self.vista)
         msg_box.setWindowTitle("Corrección de Límites")
         
@@ -241,7 +236,7 @@ class ControladorLimites:
         msg_box.exec()
 
     def actualizar_barra_feedback(self, texto, bg_color, text_color, border_color):
-        """ Cambia visualmente la barra inferior de la tarjeta de defensa """
+        # Cambia visualmente la barra inferior de la tarjeta de input
         self.vista.lbl_validacion.setText(texto)
         self.vista.lbl_validacion.setStyleSheet(f"""
             background-color: {bg_color}; color: {text_color}; 

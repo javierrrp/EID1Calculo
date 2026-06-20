@@ -1,9 +1,6 @@
-
 class ErrorConicas(Exception):
     #Excepcion propia del modulo para errores controlados
     pass
-
-
 
 class ModeloConicas:
     def __init__(self, a, b, c, d, e):
@@ -15,10 +12,7 @@ class ModeloConicas:
         self.e = float(e)
         self.pasos_desarrollo = []
 
-    # ─────────────────────────────────────────────────────────────
-    # VALIDACIONES INTERNAS
-    # ─────────────────────────────────────────────────────────────
-    
+    # Validaciones internas para asegurar que los coeficientes sean numéricos 
     @staticmethod
     def _validar_coeficientes(a, b, c, d, e):
 
@@ -66,9 +60,9 @@ class ModeloConicas:
             h = 0.0
             k = 0.0
  
-            #Completar cuadrado en X
+            # Completa cuadrado en X
             if abs(self.a) > 1e-9:
-                mitad_c_sobre_a = self.c / (2.0 * self.a)   # c/(2A)
+                mitad_c_sobre_a = self.c / (2.0 * self.a)    # c/(2A)
                 termino_suma_x = mitad_c_sobre_a ** 2        # (c/2A) 
                 aporte_x = self.a * termino_suma_x           # A·(c/2A)²
  
@@ -82,7 +76,7 @@ class ModeloConicas:
             else:
                 self.pasos_desarrollo.append("A = 0 → no se completa cuadrado en X (parábola horizontal).")
  
-            #Completar cuadrado en Y
+            # Completa el cuadrado en Y
             if abs(self.b) > 1e-9:
                 mitad_d_sobre_b = self.d / (2.0 * self.b)
                 termino_suma_y = mitad_d_sobre_b ** 2
@@ -108,22 +102,19 @@ class ModeloConicas:
         except ErrorConicas:
             raise
         except ZeroDivisionError:
-            # No debería ocurrir por las guardas anteriores, pero por si acaso.
             raise ErrorConicas(
                 "División por cero al completar el cuadrado. "
                 "Verifica que A y B no sean simultáneamente cero."
             )
         except Exception as exc:
             raise ErrorConicas(f"Error inesperado en completar_cuadrados: {exc}") from exc
-        
 
     def obtener_elementos_geometricos(self) -> dict:
-    
         try:
             tipo = self.clasificar_conica()
             h, k, lado_der = self.completar_cuadrados()
  
-            # Corregir el -0.0 que puede aparecer en h o k
+            # Correción de -0.0 que puede aparecer en h o k
             h_str = f"{h:.4g}" if h != 0 else "0"
             k_str = f"{k:.4g}" if k != 0 else "0"
 
@@ -202,7 +193,7 @@ class ModeloConicas:
                 base["vertices"] = vertices
                 return base
  
-            # Parábola u otro tipo
+            # Parábola u otro tipo de cónica con un solo vértice
             base["vertices"] = f"({h:.4g}, {k:.4g})"
             return base
  
@@ -228,7 +219,6 @@ class ModeloConicas:
 
         return "\n".join(self.pasos_desarrollo)
     
-
     def expandir_general(
             self, h: float, k: float, lado_derecho: float
     
@@ -254,8 +244,6 @@ class ModeloConicas:
                 f"+ {self.b:.4g}(y - {k:.4g})² = {lado_derecho:.6g}\n"
             )
 
-
-
             pasos.append("\n1. Desarrollamos los binomios al cuadrado:")
             pasos.append(f"   (x - {h:.4g})² = x² - {2*h:.4g}x + {h**2:.4g}")
             pasos.append(f"   (y - {k:.4g})² = y² - {2*k:.4g}y + {k**2:.4g}\n")
@@ -276,7 +264,6 @@ class ModeloConicas:
                 f"= {self.b:.4g}y² + {d_calculado:.4g}y + {termino_ind_y:.4g}\n"
             )
         
-
             e_calculado = termino_ind_x + termino_ind_y - lado_derecho
             pasos.append("\n3. Agrupamos terminos independientes trasladando el lado derecho:")
             pasos.append(

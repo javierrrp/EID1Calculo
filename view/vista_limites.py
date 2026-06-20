@@ -6,7 +6,7 @@ from PyQt6.QtCore import Qt, QPointF, QPoint, QRegularExpression
 from PyQt6.QtGui import QColor, QPainter, QPen, QBrush, QWheelEvent, QMouseEvent, QFont, QRegularExpressionValidator
 
 class LienzoLimites(QWidget):
-    """Lienzo matemático manual mediante QPainter con soporte de Zoom, Arrastre e inmunidad a fallos."""
+    # Lienzo matemático manual mediante QPainter con soporte de Zoom, Arrastre e inmunidad a fallos.
     def __init__(self):
         super().__init__()
         self.setMinimumSize(400, 510) 
@@ -115,7 +115,7 @@ class LienzoLimites(QWidget):
                     painter.drawLine(centro_x - 3, pos_y, centro_x + 3, pos_y)
                     painter.drawText(x_num, pos_y + 4, f"{u}")
                 
-        # --- MANEJO DE ERRORES UX: Si no hay modelo válido asignado, aborta el ploteo de curvas de forma segura ---
+        # Manejo de errores: Si no hay modelo válido asignado, aborta el ploteo de curvas de forma segura 
         if not self.modelo_vinculado or not hasattr(self.modelo_vinculado, 'dígitos') or not self.modelo_vinculado.dígitos:
             return
 
@@ -199,7 +199,7 @@ class VistaLimites(QWidget):
         layout_principal.setContentsMargins(24, 16, 24, 24)
         layout_principal.setSpacing(24)
 
-        # ================= COLUMNA IZQUIERDA: PLANTEAMIENTO PEDAGÓGICO =================
+        # Columna izquierda: Planteamiento, marco teórico y tabla de límites
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -273,7 +273,7 @@ class VistaLimites(QWidget):
 
         scroll_area.setWidget(contenedor_izquierdo)
         
-        # ================= COLUMNA DERECHA: SECCIÓN GRÁFICA Y EVALUACIÓN =================
+        # Columna derecha: Sección grafica y controles de evaluación
         panel_grafico = QVBoxLayout()
         panel_grafico.setContentsMargins(0, 0, 0, 0)
         panel_grafico.setSpacing(12)
@@ -302,8 +302,7 @@ class VistaLimites(QWidget):
         grid_inputs.setHorizontalSpacing(20)
         grid_inputs.setVerticalSpacing(10)
 
-        # --- VALIDACIÓN DE ENTRADAS EN TIEMPO REAL CON EXPRESIONES REGULARES ---
-        # Permite: enteros, decimales con punto/coma, signos de resta, y las cadenas "inf", "-inf", "no existe"
+        # Validación de entrada: Solo permite formatos matemáticos válidos para límites y valores (números, inf, no existe)
         regex_matematica = QRegularExpression(r"^-?(?:\d+(?:[\.,]\d*)?|[\.,]\d+|inf|no existe)$")
         validador_estricto = QRegularExpressionValidator(regex_matematica, self)
 
@@ -312,7 +311,7 @@ class VistaLimites(QWidget):
         lbl_lim_izq.setStyleSheet("font-size: 11px; color: #475569; font-weight: 600;")
         self.input_lim_izq = QLineEdit()
         self.input_lim_izq.setPlaceholderText("Ej: 5, inf o -inf")
-        self.input_lim_izq.setValidator(validador_estricto) # <--- CONTROL DE ENTRADA
+        self.input_lim_izq.setValidator(validador_estricto) # <--- Control de entrada
         self.estilar_input(self.input_lim_izq)
         grid_inputs.addWidget(lbl_lim_izq, 0, 0)
         grid_inputs.addWidget(self.input_lim_izq, 0, 1)
@@ -331,7 +330,7 @@ class VistaLimites(QWidget):
         lbl_lim_der.setStyleSheet("font-size: 11px; color: #475569; font-weight: 600;")
         self.input_lim_der = QLineEdit()
         self.input_lim_der.setPlaceholderText("Ej: 5, inf o -inf")
-        self.input_lim_der.setValidator(validador_estricto) # <--- CONTROL DE ENTRADA
+        self.input_lim_der.setValidator(validador_estricto) # <--- Control de entrada
         self.estilar_input(self.input_lim_der)
         grid_inputs.addWidget(lbl_lim_der, 0, 2)
         grid_inputs.addWidget(self.input_lim_der, 0, 3)
@@ -341,7 +340,7 @@ class VistaLimites(QWidget):
         lbl_fa.setStyleSheet("font-size: 11px; color: #475569; font-weight: 600;")
         self.input_fa = QLineEdit()
         self.input_fa.setPlaceholderText("Ej: 4 o No existe")
-        self.input_fa.setValidator(validador_estricto) # <--- CONTROL DE ENTRADA
+        self.input_fa.setValidator(validador_estricto) # <--- Control de entrada
         self.estilar_input(self.input_fa)
         grid_inputs.addWidget(lbl_fa, 1, 2)
         grid_inputs.addWidget(self.input_fa, 1, 3)
@@ -441,7 +440,7 @@ class VistaLimites(QWidget):
         qcombobox.setView(QListView(self))
 
     def mostrar_datos_modulo_limites(self, modelo):
-        """Muestra el planteamiento del problema utilizando los datos del modelo resguardando inconsistencias de datos."""
+        # Muestra el planteamiento del problema utilizando los datos del modelo resguardando inconsistencias de datos."""
         if modelo is None:
             self.lbl_validacion.setStyleSheet("color: #EF4444; font-weight: 700;")
             self.lbl_validacion.setText("❌ Error: Estructura de datos nula suministrada al componente de límites.")
@@ -534,7 +533,7 @@ class VistaLimites(QWidget):
             self.lbl_validacion.setText(f"❌ Error al cargar los datos del problema: {str(e)}")
 
     def procesar_verificacion(self):
-        """Lógica de verificación desacoplada y blindada contra ingresos maliciosos."""
+        # Lógica de verificación desacoplada y blindada contra ingresos maliciosos.
         try:
             if not hasattr(self, 'modelo_actual') or self.modelo_actual is None:
                 self.lbl_validacion.setStyleSheet("color: #EF4444; font-weight: 700;")
@@ -549,7 +548,7 @@ class VistaLimites(QWidget):
             txt_existe = str(self.combo_existe.currentText()).strip().lower()
             txt_cont = str(self.combo_continuidad.currentText()).strip().lower()
 
-            # Forzar validación de campos vacíos o sin selección
+            # Forza validación de campos vacíos o sin selección
             if not txt_izq or not txt_der or not txt_fa or "[ seleccione" in txt_existe or "[ seleccione" in txt_cont:
                 self.lbl_validacion.setStyleSheet("color: #EA580C; font-weight: 700;")
                 self.lbl_validacion.setText("⚠️ Completa todas las opciones de la zona de evaluación.")
@@ -610,7 +609,6 @@ class VistaLimites(QWidget):
             self.lbl_validacion.setStyleSheet("color: #7F1D1D; background-color: #FEE2E2; font-weight: bold;")
             self.lbl_validacion.setText(f"⚠️ Error controlado en validación: {str(e)}")
 
-
 class SimuladorModeloMatematico:
     def __init__(self, caso=1):
         self.caso = caso  
@@ -639,7 +637,7 @@ class SimuladorModeloMatematico:
         return t_izq, t_der
 
     def obtener_respuestas_correctas(self):
-        """Retorna las soluciones estructuradas de forma consistente como tipos nativos estándar"""
+        # Retorna las soluciones estructuradas de forma consistente como tipos nativos estándar
         if self.caso == 1:
             val_lim = round(float(self.a + self.dígitos[0]), 2)
             return val_lim, val_lim, 1, "no existe", 2  # 1=Sí existe, 2=Evitable

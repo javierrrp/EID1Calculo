@@ -8,7 +8,7 @@ class ModeloLimites:
 
     def configurar_desde_rut(self, cuerpo_rut):
         try:
-            # Forzar conversión y limpiar caracteres no numéricos
+            # Fuerza conversión y limpia caracteres no numéricos
             filtrado = [int(d) for d in str(cuerpo_rut) if d.isdigit()]
             
             if not filtrado:
@@ -66,7 +66,7 @@ class ModeloLimites:
         return 0.0
 
     def generar_tabla_valores(self):
-        """Genera entornos asumiendo el estado controlado de evaluar_funcion."""
+        # Genera entornos asumiendo el estado controlado de evaluar_funcion.
         if not self.ejercicio_cargado:
             return [], []
             
@@ -88,7 +88,7 @@ class ModeloLimites:
         return tabla_izq, tabla_der
 
     def obtener_limites_teoricos(self):
-        """Calcula de forma analítica exacta los límites."""
+        # Calcula de forma analítica exacta los límites.
         if not self.ejercicio_cargado:
             return None, None, False
             
@@ -112,7 +112,7 @@ class ModeloLimites:
         return lim_izq, lim_der, existencia
 
     def obtener_solucionario(self):
-        """Estructura las respuestas esperadas convirtiéndolas a texto estándar para validación."""
+        # Estructura las respuestas esperadas convirtiéndolas a texto estándar para validación.
         if not self.ejercicio_cargado:
             return {}
             
@@ -129,7 +129,7 @@ class ModeloLimites:
         }
 
     def verificar_respuestas(self, resp_alumno):
-        """Compara las respuestas con tolerancia numérica en punto flotante."""
+        # Compara las respuestas con tolerancia numérica en punto flotante.
         if not self.ejercicio_cargado:
             raise ValueError("Operación denegada: No existe un ejercicio activo.")
             
