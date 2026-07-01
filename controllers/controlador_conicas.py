@@ -120,6 +120,7 @@ class ControladorConicas:
         # Leemos lo que el usuario ingresó en los campos
         resp_centro = self.vista.input_centro.text().strip()
         resp_radio  = self.vista.input_radio.text().strip()
+        resp_focos  = self.vista.input_focos.text().strip() 
 
 
         # Verifica si hay campos vacios
@@ -128,6 +129,8 @@ class ControladorConicas:
             campos_vacios.append("• Centro (h, k)")
         if self.vista.input_radio.isVisible() and not resp_radio:
             campos_vacios.append("• Radio")
+        if self.vista.input_focos.isVisible() and not resp_focos: 
+            campos_vacios.append("• Focos / Vértices")
 
         if campos_vacios:
             msg = QMessageBox(self.vista)
@@ -149,22 +152,27 @@ class ControladorConicas:
         # Leemos la verdad absoluta calculada por el modelo
         real_centro = self.elementos_correctos["centro"]
         real_radio  = self.elementos_correctos["radio"]
- 
+        tipo        = self.elementos_correctos["tipo"]    # ← LÍNEA NUEVA
+
+
+        
+
         mensaje = "--- PANEL --- \n\n"
  
         # Verificamos el centro
-        coords_resp = self.extraer_coordenadas(resp_centro)
-        coords_real = self.extraer_coordenadas(real_centro)
+        if self.vista.input_centro.isVisible():
+            coords_resp = self.extraer_coordenadas(resp_centro)
+            coords_real = self.extraer_coordenadas(real_centro)
  
-        if coords_resp and coords_real:
-            if abs(coords_resp[0] - coords_real[0]) < 0.05 and abs(coords_resp[1] - coords_real[1]) < 0.05:
-                mensaje += "✅ Centro: Correcto!\n"
+            if coords_resp and coords_real:
+                if abs(coords_resp[0] - coords_real[0]) < 0.05 and abs(coords_resp[1] - coords_real[1]) < 0.05:
+                    mensaje += "✅ Centro: Correcto!\n"
+                else:
+                    mensaje += f"❌ Centro: Incorrecto. Respuesta correcta: {real_centro}\n"
             else:
                 mensaje += f"❌ Centro: Incorrecto. Respuesta correcta: {real_centro}\n"
-        else:
-            mensaje += f"❌ Centro: Incorrecto. Respuesta correcta: {real_centro}\n"
  
-        if self.elementos_correctos["tipo"] == "Circunferencia":
+        if tipo == "Circunferencia":
             if not resp_radio:
                 mensaje += "⚠️ Radio: El campo está vacío.\n"
             else:
@@ -177,8 +185,47 @@ class ControladorConicas:
                         mensaje += f"❌ Radio: Incorrecto. Respuesta correcta: {real_radio}\n"
                 except ValueError:
                     mensaje += f"❌ Radio: Incorrecto. Respuesta correcta: {real_radio}\n"
- 
+        
+        if "parábola" in tipo.lower() or "parabola" in tipo.lower():
+            real_vertice = self.elementos_correctos["vertices"]
+            coords_resp  = self.extraer_coordenadas(resp_focos)
+            coords_real  = self.extraer_coordenadas(real_vertice)
+
+            if coords_resp and coords_real:
+                if abs(coords_resp[0] - coords_real[0]) < 0.05 and abs(coords_resp[1] - coords_real[1]) < 0.05:
+                    mensaje += "✅ Vértice: Correcto!\n"
+                else:
+                    mensaje += f"❌ Vértice: Incorrecto. Respuesta correcta: {real_vertice}\n"
+            else:
+                mensaje += f"❌ Vértice: Incorrecto. Respuesta correcta: {real_vertice}\n"
+
+        if "elipse" in tipo.lower() or "hipérbola" in tipo.lower() or "hiperbola" in tipo.lower():
+            real_focos = self.elementos_correctos["focos"]
+
+            # Parser para dos puntos separados por " y "
+            partes_resp = resp_focos.split(" y ")
+            partes_real = real_focos.split(" y ")
+
+            if len(partes_resp) == 2 and len(partes_real) == 2:
+                p1_resp = self.extraer_coordenadas(partes_resp[0])
+                p2_resp = self.extraer_coordenadas(partes_resp[1])
+                p1_real = self.extraer_coordenadas(partes_real[0])
+                p2_real = self.extraer_coordenadas(partes_real[1])
+
+                if p1_resp and p2_resp and p1_real and p2_real:
+                    ok1 = abs(p1_resp[0]-p1_real[0]) < 0.05 and abs(p1_resp[1]-p1_real[1]) < 0.05
+                    ok2 = abs(p2_resp[0]-p2_real[0]) < 0.05 and abs(p2_resp[1]-p2_real[1]) < 0.05
+                    if ok1 and ok2:
+                        mensaje += "✅ Focos: Correcto!\n"
+                    else:
+                        mensaje += f"❌ Focos: Incorrecto. Respuesta correcta: {real_focos}\n"
+                else:
+                    mensaje += f"❌ Focos: Incorrecto. Respuesta correcta: {real_focos}\n"
+            else:
+                mensaje += f"❌ Focos: Formato incorrecto. Usa: (x1, y1) y (x2, y2)\n"
+    
         self._mostrar_resultado(mensaje)
+
     
     # Herramienta para extraer coordenadas de un string con formato "(x, y)"
     @staticmethod
